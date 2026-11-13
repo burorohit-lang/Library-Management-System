@@ -1,0 +1,249 @@
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 35px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+/* Header & Side-by-Side Logo / Title Styles */
+.register-header-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 20px;
+}
+
+.register-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 55px;
+  height: 55px;
+  min-width: 55px;
+  background-color: #eff6ff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.1);
+}
+
+.register-logo-icon {
+  font-size: 26px;
+  color: #2563eb;
+}
+
+.register-title-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-title {
+  margin: 0 0 2px 0;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.register-subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.register-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.register-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.register-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.register-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  font-size: 16px;
+  z-index: 1;
+}
+
+.register-input,
+.register-input-eye,
+.register-select {
+  width: 100%;
+  padding: 11px 12px 11px 40px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  background-color: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.register-input-eye {
+  padding-right: 42px;
+}
+
+.register-select {
+  cursor: pointer;
+}
+
+.register-input:focus,
+.register-input-eye:focus,
+.register-select:focus {
+  border-color: #2563eb;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.register-eye-icon {
+  position: absolute;
+  right: 14px;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.register-button {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.register-button:hover {
+  background-color: #1d4ed8;
+}
+
+.register-error-box {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #fecaca;
+}
+
+.register-success-box {
+  background-color: #dcfce7;
+  color: #16a34a;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #bbf7d0;
+}
+
+.register-login-container {
+  margin-top: 20px;
+  text-align: center;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 20px;
+}
+
+.register-login-text {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.register-login-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.register-login-link:hover {
+  text-decoration: underline;
+}
+
+
+/* ==========================================
+   Responsive Media Queries for All Devices
+   ========================================== */
+
+@media screen and (max-width: 480px) {
+  .register-card {
+    padding: 25px 20px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: none;
+  }
+
+  .register-header-container {
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 15px;
+  }
+
+  .register-logo-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+
+  .register-logo-icon {
+    font-size: 22px;
+  }
+
+  .register-title {
+    font-size: 19px;
+  }
+
+  .register-subtitle {
+    font-size: 12px;
+  }
+
+  .register-input,
+  .register-input-eye,
+  .register-select,
+  .register-button {
+    font-size: 16px;
+    padding: 12px 12px 12px 40px;
+  }
+}

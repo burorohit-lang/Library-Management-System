@@ -1,0 +1,117 @@
+.librarian-portal-container {
+  padding: 30px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.librarian-header {
+  background-color: #ffffff;
+  padding: 20px 30px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.librarian-welcome h2 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.librarian-welcome p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.lib-logout-btn {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.lib-logout-btn:hover {
+  background-color: #fecaca;
+}
+
+/* Grid Cards */
+.librarian-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.lib-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.lib-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
+}
+
+.lib-card-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.lib-card-icon.blue {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.lib-card-icon.green {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.lib-card-icon.orange {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+
+.lib-card-info h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.lib-card-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.lib-card-icon.indigo {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}

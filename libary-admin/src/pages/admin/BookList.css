@@ -1,0 +1,211 @@
+.book-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.book-list-header {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.book-list-header h2 {
+  margin: 0 0 5px 0;
+  font-size: 22px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.book-list-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Toolbar (Search & Filter) */
+.book-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.search-box,
+.filter-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-box {
+  flex: 1;
+}
+
+.search-icon,
+.filter-icon {
+  color: #94a3b8;
+  font-size: 15px;
+  margin-right: 10px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #0f172a;
+  background: transparent;
+}
+
+.category-filter-select {
+  padding: 12px 0;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #334155;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Table Card */
+.book-table-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.inventory-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inventory-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.inventory-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.book-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-book-icon {
+  color: #2563eb;
+  font-size: 16px;
+}
+
+.table-cat-badge {
+  background-color: #eff6ff;
+  color: #2563eb;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.available {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.status-badge.out {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn.edit {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.action-btn.edit:hover {
+  background-color: #dbeafe;
+}
+
+.action-btn.delete {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.action-btn.delete:hover {
+  background-color: #fecaca;
+}
+
+.no-records {
+  text-align: center;
+  padding: 30px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.book-list-success-box {
+  background-color: #dcfce7;
+  color: #16a34a;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #bbf7d0;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .book-toolbar {
+    flex-direction: column;
+  }
+}

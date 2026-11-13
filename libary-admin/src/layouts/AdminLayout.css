@@ -1,0 +1,40 @@
+.admin-layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.admin-main-container {
+  flex: 1;
+  margin-left: 250px;
+  padding-top: 65px; /* Header Height */
+  transition: margin-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-main-container.collapsed {
+  margin-left: 70px;
+}
+
+.admin-content-body {
+  padding: 25px;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+/* Responsive Styles for Mobile & Tablets */
+@media screen and (max-width: 768px) {
+  .admin-main-container {
+    margin-left: 70px;
+  }
+  
+  .admin-header {
+    left: 70px;
+  }
+
+  .user-name {
+    display: none; /* Hide user name on small screens */
+  }
+}

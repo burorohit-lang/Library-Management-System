@@ -1,0 +1,189 @@
+.librarian-users-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.librarian-users-header {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.librarian-users-header h2 {
+  margin: 0 0 5px 0;
+  font-size: 22px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.librarian-users-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Toolbar */
+.librarian-toolbar {
+  display: flex;
+  justify-content: space-between;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex: 1;
+}
+
+.search-icon {
+  color: #94a3b8;
+  font-size: 15px;
+  margin-right: 10px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #0f172a;
+  background: transparent;
+}
+
+/* Table Card */
+.librarian-table-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.librarian-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.librarian-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.librarian-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.librarian-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.librarian-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-librarian-icon {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.default-tag {
+  margin-left: 8px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.librarian-email-cell,
+.librarian-shift-cell {
+  display: flex;
+  align-items: center;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.status-badge.inactive {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+/* Action Button */
+.action-btn {
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn.delete {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.action-btn.delete:hover:not(.disabled) {
+  background-color: #fecaca;
+}
+
+.action-btn.disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.no-records {
+  text-align: center;
+  padding: 30px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.librarian-success-box {
+  background-color: #dcfce7;
+  color: #16a34a;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #bbf7d0;
+}
