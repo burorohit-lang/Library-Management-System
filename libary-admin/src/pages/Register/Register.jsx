@@ -1,28 +1,53 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaBookOpen, FaUserPlus } from 'react-icons/fa';
+import {
+  FaUser,
+  FaEnvelope,
+  FaLock,
+  FaBuilding,
+  FaUserPlus,
+  FaEye,
+  FaEyeSlash,
+  FaBookOpen,
+} from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import './Register.css';
 
-const Register = () => {
+const DEPARTMENTS = [
+  'Computer Science',
+  'Information Technology',
+  'Electronics & Communication',
+  'Mechanical Engineering',
+  'Civil Engineering',
+  'Business Administration',
+  'Arts & Humanities',
+];
+
+const RegisterStudent = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [department, setDepartment] = useState('Computer Science');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [department, setDepartment] = useState('Computer Science');
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setError('');
     setSuccess('');
 
-    // পাসওয়ার্ড ম্যাচিং চেক
-    if (password !== confirmPassword) {
-      setError('Passwords do not match!');
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !password) {
+      setError('Please fill in all required fields.');
       return;
     }
 
@@ -31,24 +56,33 @@ const Register = () => {
       return;
     }
 
-    try {
-      setLoading(true);
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
 
-      // MongoDB ব্যাকএন্ড API-তে রেজিস্ট্রেশন রিকোয়েস্ট পাঠানো
+    setLoading(true);
+    try {
       const { data } = await api.post('/auth/register', {
-        name: name.trim(),
-        email: email.trim(),
+        name: cleanName,
+        email: cleanEmail,
         password,
-        department
+        department,
       });
 
+      localStorage.setItem('savedEmail', cleanEmail);
       setSuccess(data?.message || 'Registration successful! Redirecting to login...');
 
       setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+        navigate('/login', { replace: true });
+      }, 1500);
     } catch (err) {
-      setError(getErrorMessage(err, 'Registration failed! Please try again.'));
+      const status = err.response?.status;
+      if (!status || status >= 500) {
+        setError('Unable to reach the server. Please try again later.');
+      } else {
+        setError(getErrorMessage(err, 'Registration failed. Please check your details.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -56,129 +90,171 @@ const Register = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card" style={{ maxWidth: '440px' }}>
-        
-        {/* Header */}
+      <div className="login-card">
         <div className="login-header-container">
           <div className="login-logo-wrapper">
             <FaBookOpen className="login-logo-icon" />
           </div>
           <div className="login-title-wrapper">
-            <h2 className="login-title">Student Registration</h2>
-            <p className="login-subtitle">Create your library account</p>
+            <h2 className="login-title">Student Sign Up</h2>
+            <p className="login-subtitle">Create your library member account</p>
           </div>
         </div>
 
         {error && (
-          <div className="login-error-box" style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px' }}>
+          <div className="login-error-box" role="alert">
             {error}
           </div>
         )}
+
         {success && (
-          <div className="login-error-box" style={{ backgroundColor: '#dcfce7', color: '#16a34a', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px' }}>
+          <div
+            role="status"
+            style={{
+              backgroundColor: '#ecfdf5',
+              color: '#065f46',
+              border: '1px solid #a7f3d0',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '0.9rem',
+            }}
+          >
             {success}
           </div>
         )}
 
         <form onSubmit={handleRegister} className="login-form">
-          
           {/* Full Name */}
           <div className="login-input-group">
-            <label className="login-label">Full Name</label>
+            <label htmlFor="reg-name" className="login-label">
+              Full Name
+            </label>
             <div className="login-input-wrapper">
               <FaUser className="login-icon" />
-              <input 
-                type="text" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                required 
-                placeholder="John Doe"
+              <input
+                id="reg-name"
+                type="text"
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Jane Doe"
                 className="login-input"
               />
             </div>
           </div>
 
-          {/* Email Address */}
+          {/* Email */}
           <div className="login-input-group">
-            <label className="login-label">Email Address</label>
+            <label htmlFor="reg-email" className="login-label">
+              Email Address
+            </label>
             <div className="login-input-wrapper">
               <FaEnvelope className="login-icon" />
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
+              <input
+                id="reg-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
                 placeholder="student@library.com"
                 className="login-input"
               />
             </div>
           </div>
 
-          {/* Department / Course */}
+          {/* Department */}
           <div className="login-input-group">
-            <label className="login-label">Department / Course</label>
+            <label htmlFor="reg-dept" className="login-label">
+              Department
+            </label>
             <div className="login-input-wrapper">
-              <select 
-                value={department} 
-                onChange={(e) => setDepartment(e.target.value)} 
+              <FaBuilding className="login-icon" />
+              <select
+                id="reg-dept"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
                 className="login-select"
-                style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
               >
-                <option value="Computer Science">Computer Science</option>
-                <option value="Business Management">Business Management</option>
-                <option value="Information Technology">Information Technology</option>
+                {DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           {/* Password */}
           <div className="login-input-group">
-            <label className="login-label">Password</label>
+            <label htmlFor="reg-password" className="login-label">
+              Password (min. 6 characters)
+            </label>
             <div className="login-input-wrapper">
               <FaLock className="login-icon" />
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
+              <input
+                id="reg-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
                 placeholder="••••••••"
-                className="login-input"
+                className="login-input-eye"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="login-eye-icon"
+                style={{ background: 'none', border: 'none', padding: 0 }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
           </div>
 
           {/* Confirm Password */}
           <div className="login-input-group">
-            <label className="login-label">Confirm Password</label>
+            <label htmlFor="reg-confirm-password" className="login-label">
+              Confirm Password
+            </label>
             <div className="login-input-wrapper">
               <FaLock className="login-icon" />
-              <input 
-                type="password" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-                required 
+              <input
+                id="reg-confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
                 placeholder="••••••••"
                 className="login-input"
               />
             </div>
           </div>
 
-          {/* Submit Button */}
-          <button type="submit" disabled={loading} className="login-button" style={{ marginTop: '10px' }}>
-            <FaUserPlus style={{ marginRight: '8px' }} /> {loading ? 'Creating Account...' : 'Register Account'}
+          <button type="submit" disabled={loading} className="login-button">
+            <FaUserPlus style={{ marginRight: '8px' }} />
+            {loading ? 'Creating account...' : 'Register'}
           </button>
         </form>
 
-        {/* Back to Login Link */}
-        <div className="login-register-container" style={{ textAlign: 'center', marginTop: '15px' }}>
+        <div className="login-register-container">
           <p className="login-register-text">
-            Already have an account? <Link to="/login" className="login-register-link">Login here</Link>
+            Already have an account?{' '}
+            <Link to="/login" className="login-register-link">
+              Sign in here
+            </Link>
           </p>
         </div>
-
       </div>
     </div>
   );
 };
 
-export default Register;
+export default RegisterStudent;
