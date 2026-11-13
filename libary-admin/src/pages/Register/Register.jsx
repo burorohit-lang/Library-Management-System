@@ -4,7 +4,6 @@ import {
   FaUser,
   FaEnvelope,
   FaLock,
-  FaBuilding,
   FaUserPlus,
   FaEye,
   FaEyeSlash,
@@ -13,20 +12,16 @@ import {
 import api, { getErrorMessage } from '../../lib/api';
 import './Register.css';
 
-const DEPARTMENTS = [
-  'Computer Science',
-  'Information Technology',
-  'Electronics & Communication',
-  'Mechanical Engineering',
-  'Civil Engineering',
-  'Business Administration',
-  'Arts & Humanities',
+const ROLES = [
+  'Student',
+  'Admin',
+  'Staff',
 ];
 
 const RegisterStudent = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [department, setDepartment] = useState('Computer Science');
+  const [role, setRole] = useState('Student');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -67,7 +62,7 @@ const RegisterStudent = () => {
         name: cleanName,
         email: cleanEmail,
         password,
-        department,
+        role,
       });
 
       localStorage.setItem('savedEmail', cleanEmail);
@@ -96,8 +91,8 @@ const RegisterStudent = () => {
             <FaBookOpen className="login-logo-icon" />
           </div>
           <div className="login-title-wrapper">
-            <h2 className="login-title">Student Sign Up</h2>
-            <p className="login-subtitle">Create your library member account</p>
+            <h2 className="login-title">Create Account</h2>
+            <p className="login-subtitle">Register your library member account</p>
           </div>
         </div>
 
@@ -159,28 +154,28 @@ const RegisterStudent = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="student@library.com"
+                placeholder="user@library.com"
                 className="login-input"
               />
             </div>
           </div>
 
-          {/* Department */}
+          {/* Role Selection */}
           <div className="login-input-group">
-            <label htmlFor="reg-dept" className="login-label">
-              Department
+            <label htmlFor="reg-role" className="login-label">
+              Select Role
             </label>
             <div className="login-input-wrapper">
-              <FaBuilding className="login-icon" />
+              <FaUser className="login-icon" />
               <select
-                id="reg-dept"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
+                id="reg-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
                 className="login-select"
               >
-                {DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
                   </option>
                 ))}
               </select>

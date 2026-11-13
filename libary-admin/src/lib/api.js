@@ -12,6 +12,7 @@ const baseURL = rawBaseUrl
 const api = axios.create({
   baseURL,
   timeout: 15000,
+  withCredentials: true, // <-- Added: Ensures cookies/sessions are sent properly across origins if needed
   headers: {
     'Content-Type': 'application/json',
   },
