@@ -4,6 +4,12 @@ import { FaEnvelope, FaLock, FaUserShield, FaSignInAlt, FaEye, FaEyeSlash, FaBoo
 import api, { getErrorMessage } from '../../lib/api';
 import './Login.css';
 
+const ROLE_ROUTES = {
+  admin: '/admin/dashboard',
+  librarian: '/librarian/dashboard',
+  student: '/student/dashboard',
+};
+
 const Login = () => {
   const [email, setEmail] = useState(() => localStorage.getItem('savedEmail') || '');
   const [password, setPassword] = useState('');
@@ -15,11 +21,12 @@ const Login = () => {
   const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
-    setShowPassword((prevState) => !prevState);
+    setShowPassword((prev) => !prev);
   };
 
   const completeLoginSuccess = (token, user) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
     localStorage.setItem('userId', user._id);
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userEmail', user.email);
@@ -31,69 +38,38 @@ const Login = () => {
       localStorage.removeItem('savedEmail');
     }
 
-    if (user.role === 'admin') {
-      navigate('/admin/dashboard');
-    } else if (user.role === 'librarian') {
-      navigate('/librarian/dashboard');
-    } else {
-      navigate('/student/dashboard');
-    }
+    navigate(ROLE_ROUTES[user.role] || '/student/dashboard', { replace: true });
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setError('');
     setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // ১. প্রথমে MongoDB ব্যাকএন্ড API দিয়ে লগইন করার চেষ্টা করবে
       const { data } = await api.post('/auth/login', {
         email: cleanEmail,
         password,
-        role
+        role,
       });
+
+      if (!data?.token || !data?.user) {
+        throw new Error('Unexpected response from authentication server.');
+      }
 
       completeLoginSuccess(data.token, data.user);
     } catch (err) {
       const status = err.response?.status;
 
-      // যদি ব্যাকএন্ড সার্ভার বন্ধ থাকে (502 Bad Gateway বা Network Error)
       if (!status || status >= 500) {
-        if (role === 'admin' && cleanEmail === 'admin@library.com' && password === 'adminpassword123') {
-          completeLoginSuccess('offline_admin_token', {
-            _id: 'master-admin',
-            name: 'System Admin',
-            email: cleanEmail,
-            role: 'admin'
-          });
-          return;
-        }
-
-        if (role === 'librarian' && cleanEmail === 'librarian@library.com' && password === 'librarianpassword123') {
-          completeLoginSuccess('offline_librarian_token', {
-            _id: 'master-librarian',
-            name: 'Head Librarian',
-            email: cleanEmail,
-            role: 'librarian'
-          });
-          return;
-        }
-
-        if (role === 'student' && cleanEmail === 'student@library.com') {
-          completeLoginSuccess('offline_student_token', {
-            _id: 'demo_student_id',
-            name: 'Student Member',
-            email: cleanEmail,
-            role: 'student'
-          });
-          return;
-        }
-
-        setError('Backend server is not running! Start "node server.js" in backend folder.');
+        setError('Unable to reach the server. Make sure the backend API is running and connected.');
+      } else if (status === 404) {
+        setError('Login API endpoint not found (404). Check your VITE_API_URL or Vercel /api rewrite configuration.');
       } else {
-        // ভুল পাসওয়ার্ড বা ইমেইল হলে সার্ভারের মেসেজ দেখাবে
         setError(getErrorMessage(err, 'Invalid email, password, or role!'));
       }
     } finally {
@@ -104,7 +80,6 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        
         {/* Header with Side-by-Side Logo and Title */}
         <div className="login-header-container">
           <div className="login-logo-wrapper">
@@ -116,18 +91,27 @@ const Login = () => {
           </div>
         </div>
 
-        {error && <div className="login-error-box">{error}</div>}
+        {error && (
+          <div className="login-error-box" role="alert">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="login-form">
-          
           {/* Role Select Dropdown */}
           <div className="login-input-group">
-            <label className="login-label">Select Role</label>
+            <label htmlFor="login-role" className="login-label">
+              Select Role
+            </label>
             <div className="login-input-wrapper">
               <FaUserShield className="login-icon" />
-              <select 
-                value={role} 
-                onChange={(e) => setRole(e.target.value)} 
+              <select
+                id="login-role"
+                value={role}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  setError('');
+                }}
                 className="login-select"
               >
                 <option value="student">Student</option>
@@ -139,15 +123,25 @@ const Login = () => {
 
           {/* Email Field */}
           <div className="login-input-group">
-            <label className="login-label">Email Address</label>
+            <label htmlFor="login-email" className="login-label">
+              Email Address
+            </label>
             <div className="login-input-wrapper">
               <FaEnvelope className="login-icon" />
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-                placeholder={role === 'admin' ? 'admin@library.com' : role === 'librarian' ? 'librarian@library.com' : 'student@library.com'}
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder={
+                  role === 'admin'
+                    ? 'admin@library.com'
+                    : role === 'librarian'
+                    ? 'librarian@library.com'
+                    : 'student@library.com'
+                }
                 className="login-input"
               />
             </div>
@@ -155,39 +149,51 @@ const Login = () => {
 
           {/* Password Field */}
           <div className="login-input-group">
-            <label className="login-label">Password</label>
+            <label htmlFor="login-password" className="login-label">
+              Password
+            </label>
             <div className="login-input-wrapper">
               <FaLock className="login-icon" />
-              <input 
-                type={showPassword ? 'text' : 'password'} 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
                 placeholder="••••••••"
                 className="login-input-eye"
               />
-              <span onClick={togglePasswordVisibility} className="login-eye-icon">
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="login-eye-icon"
+                style={{ background: 'none', border: 'none', padding: 0 }}
+              >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </span>
+              </button>
             </div>
           </div>
 
           {/* Remember Me & Forgot Password */}
           <div className="login-options-row">
             <label className="login-remember-label">
-              <input 
-                type="checkbox" 
-                checked={rememberMe} 
-                onChange={(e) => setRememberMe(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
               />
               <span>Remember me</span>
             </label>
-            <Link to="/forgot-password" className="login-forgot-link">Forgot Password?</Link>
+            <Link to="/forgot-password" className="login-forgot-link">
+              Forgot Password?
+            </Link>
           </div>
 
           {/* Submit Button */}
           <button type="submit" disabled={loading} className="login-button">
-            <FaSignInAlt style={{ marginRight: '8px' }} /> 
+            <FaSignInAlt style={{ marginRight: '8px' }} />
             {loading ? 'Signing in...' : 'Login'}
           </button>
         </form>
@@ -196,7 +202,10 @@ const Login = () => {
         {role === 'student' && (
           <div className="login-register-container">
             <p className="login-register-text">
-              New Student? <Link to="/register-student" className="login-register-link">Register here</Link>
+              New Student?{' '}
+              <Link to="/register-student" className="login-register-link">
+                Register here
+              </Link>
             </p>
           </div>
         )}
