@@ -8,11 +8,10 @@ const AdminNavbar = ({ toggleSidebar }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-  // লোকালস্টোরেজ থেকে ইউজার রোল ও নাম সংগ্রহ (Admin বা Librarian)
   const role = localStorage.getItem('role') || 'admin';
   const userName = localStorage.getItem('userName') || (role === 'admin' ? 'System Admin' : 'Library Staff');
 
-  // ডেমো নোটিফিকেশন লিস্ট
+
   const [notifications, setNotifications] = useState([
     { id: 1, text: 'John Doe borrowed "React JS Mastery"', time: '10 mins ago', unread: true },
     { id: 2, text: 'Book "Advanced Node.js" is overdue', time: '1 hour ago', unread: true },
@@ -47,7 +46,7 @@ const AdminNavbar = ({ toggleSidebar }) => {
             className="notification-icon-wrapper" 
             onClick={() => {
               setShowNotifications(!showNotifications);
-              setShowUserDropdown(false); // অন্য ড্রপডাউন বন্ধ রাখবে
+              setShowUserDropdown(false);
             }}
           >
             <FaBell className="nav-icon" />
@@ -84,7 +83,7 @@ const AdminNavbar = ({ toggleSidebar }) => {
             className="user-profile-menu-btn" 
             onClick={() => {
               setShowUserDropdown(!showUserDropdown);
-              setShowNotifications(false); // অন্য ড্রপডাউন বন্ধ রাখবে
+              setShowNotifications(false); 
             }}
           >
             <div className="user-avatar-icon">

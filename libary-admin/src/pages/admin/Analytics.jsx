@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaChartLine, FaBookReader, FaExchangeAlt, FaBookmark, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import '../admin/AdminPages.css';
@@ -9,7 +9,7 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // ডিফল্ট ফলব্যাক ডেটা (MongoDB থেকে ডেটা আসলে আপডেট হয়ে যাবে)
+
   const [metricsData, setMetricsData] = useState([
     { title: 'Monthly Circulation', value: '0', change: '+0%', isPositive: true, key: 'circulation' },
     { title: 'Active Readers', value: '0', change: '+0%', isPositive: true, key: 'readers' },
@@ -33,7 +33,7 @@ const Analytics = () => {
     { month: 'Nov', borrowHeight: 80, returnHeight: 75, borrowCount: 0, returnCount: 0 }
   ]);
 
-  // আইকন ম্যাপিং ফাংশন
+
   const getMetricIcon = (key) => {
     switch (key) {
       case 'circulation':
@@ -47,7 +47,6 @@ const Analytics = () => {
     }
   };
 
-  // MongoDB ব্যাকএন্ড থেকে Analytics ডেটা লোড করা
   useEffect(() => {
     let isMounted = true;
     setLoading(true);

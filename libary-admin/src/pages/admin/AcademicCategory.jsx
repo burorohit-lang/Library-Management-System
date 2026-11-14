@@ -12,11 +12,11 @@ export default function AcademicCategory({ category }) {
     setLoading(true);
     setError('');
 
-    // ব্যাকএন্ড API-তে category প্যারামিটার পাঠানো হচ্ছে
+
     api.get('/books', { params: { search: category } })
       .then(({ data }) => {
         if (!isMounted) return;
-        // ব্যাকএন্ড থেকে সরাসরি অ্যারে বা { books: [...] } যেভাবেই আসুক তা হ্যান্ডেল করবে
+ 
         const bookList = Array.isArray(data) ? data : (data.books || []);
         
         const filtered = bookList.filter(

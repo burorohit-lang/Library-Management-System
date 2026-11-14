@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaEdit, FaUserCheck, FaUserSlash, FaSearch } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import '../admin/AdminPages.css';
@@ -14,7 +14,7 @@ const StudentUsers = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // ১. MongoDB থেকে সব স্টুডেন্ট লোড করা
+
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -32,7 +32,7 @@ const StudentUsers = () => {
     fetchStudents();
   }, []);
 
-  // এডিট মডাল ওপেন করা
+
   const handleOpenEdit = (student) => {
     setEditingStudent({
       ...student,
@@ -42,7 +42,7 @@ const StudentUsers = () => {
     setShowEditModal(true);
   };
 
-  // ২. এডিট করা ডাটা MongoDB-তে সেভ করা
+
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!editingStudent) return;
@@ -75,7 +75,6 @@ const StudentUsers = () => {
     }
   };
 
-  // ৩. Active / Deactive স্ট্যাটাস MongoDB-তে আপডেট করা
   const handleToggleStatus = async (student) => {
     const studentId = student._id || student.id;
     try {
@@ -94,7 +93,7 @@ const StudentUsers = () => {
     }
   };
 
-  // সার্চ ফিল্টার লজিক
+
   const filteredStudents = students.filter(
     (s) =>
       s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

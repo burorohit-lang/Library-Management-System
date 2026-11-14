@@ -34,7 +34,7 @@ function App() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const currentRole = localStorage.getItem('role');
 
-  // অ্যাপ লোড হওয়ার সময় MongoDB ব্যাকএন্ড থেকে সেশন ও মেইনটেনেন্স স্ট্যাটাস চেক করা
+
   useEffect(() => {
     const checkBackendSession = async () => {
       try {
@@ -42,7 +42,7 @@ function App() {
         if (data?.maintenanceMode) {
           setMaintenanceMode(true);
         }
-        // টোকেন ইনভ্যালিড বা এক্সপায়ার হয়ে গেলে লোকালস্টোরেজ পরিষ্কার করা
+
         if (localStorage.getItem('token') && data?.authenticated === false) {
           localStorage.clear();
         }
@@ -54,7 +54,6 @@ function App() {
     checkBackendSession();
   }, []);
 
-  // যদি Admin প্যানেল থেকে Maintenance Mode অন করা থাকে (Admin বাদে সবার জন্য লক দেখাবে)
   if (maintenanceMode && currentRole !== 'admin' && window.location.pathname !== '/login') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>

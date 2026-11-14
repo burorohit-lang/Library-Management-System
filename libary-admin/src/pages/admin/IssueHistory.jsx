@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaSearch, FaCheckCircle, FaExclamationCircle, FaRupeeSign, FaBook, FaUserGraduate } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import '../admin/AdminPages.css';
@@ -10,10 +10,10 @@ const IssueHistory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // প্রতি দিনের ফাইন রেট (Rs. 10)
+
   const FINE_PER_DAY = 10;
 
-  // MongoDB ব্যাকএন্ড থেকে Issue History লোড করা
+
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -37,7 +37,7 @@ const IssueHistory = () => {
     };
   }, []);
 
-  // সার্চ ফিল্টার লজিক
+
   const filteredHistory = historyList.filter(
     (item) =>
       item.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||

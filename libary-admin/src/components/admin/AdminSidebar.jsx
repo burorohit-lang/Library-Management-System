@@ -11,7 +11,7 @@ const AdminSidebar = ({ isCollapsed }) => {
   const location = useLocation();
   const isAdmin = localStorage.getItem('role') === 'admin';
 
-  // সব মেনুর ইনিশিয়াল স্টেট (dashboard সহ)
+
   const [openMenus, setOpenMenus] = useState({
     dashboard: true,
     books: false,
@@ -21,7 +21,7 @@ const AdminSidebar = ({ isCollapsed }) => {
     settings: false
   });
 
-  // বর্তমান URL অনুযায়ী সংশ্লিষ্ট মেনুটি অটোমেটিক ওপেন রাখার লজিক
+ 
   useEffect(() => {
     const path = location.pathname;
     setOpenMenus((prev) => ({

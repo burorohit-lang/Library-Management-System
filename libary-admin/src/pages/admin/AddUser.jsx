@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FaUserPlus, FaUser, FaEnvelope, FaLock, FaUserShield, FaClock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import '../admin/AdminPages.css';
@@ -47,7 +47,7 @@ const AddUser = () => {
         ...(formData.role === 'librarian' && { shift: formData.shift })
       };
 
-      // MongoDB ব্যাকএন্ড API-তে POST রিকোয়েস্ট পাঠানো
+
       const { data } = await api.post('/users', payload);
 
       setSuccess(
@@ -55,7 +55,7 @@ const AddUser = () => {
           `${formData.role === 'librarian' ? 'Librarian staff' : 'Student'} account created successfully in MongoDB!`
       );
 
-      // ফর্ম রিসেট
+
       setFormData({
         name: '',
         email: '',

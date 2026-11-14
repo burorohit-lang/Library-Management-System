@@ -11,7 +11,7 @@ const LibrarianUsers = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // ডিফল্ট হেড লাইব্রেরিয়ান রেকর্ড (ডেটাবেসে না থাকলেও যেন লিস্টে দেখায়)
+
   const defaultHeadLibrarian = {
     _id: 'default-head-lib',
     name: 'Default Head Librarian',
@@ -22,14 +22,14 @@ const LibrarianUsers = () => {
     isDefault: true
   };
 
-  // MongoDB ব্যাকএন্ড থেকে লাইব্রেরিয়ানদের তালিকা লোড করা
+
   const fetchLibrarians = async () => {
     try {
       setLoading(true);
       const { data } = await api.get('/users/librarians');
       const dbList = Array.isArray(data) ? data : [];
 
-      // ডেটাবেসে ডিফল্ট লাইব্রেরিয়ান না থাকলে শুরুতে যুক্ত করে দেখানো
+   
       const hasDefault = dbList.some((lib) => lib.email === 'librarian@library.com');
       setLibrarians(hasDefault ? dbList : [defaultHeadLibrarian, ...dbList]);
       setError('');
@@ -45,7 +45,7 @@ const LibrarianUsers = () => {
     fetchLibrarians();
   }, []);
 
-  // MongoDB থেকে লাইব্রেরিয়ান ডিলিট করা
+
   const handleDeleteLibrarian = async (lib) => {
     if (lib.isDefault || lib.email === 'librarian@library.com') {
       alert('Default Head Librarian account cannot be deleted!');
@@ -67,7 +67,7 @@ const LibrarianUsers = () => {
     }
   };
 
-  // সার্চ ফিল্টার লজিক
+
   const filteredLibrarians = librarians.filter(
     (lib) =>
       lib.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

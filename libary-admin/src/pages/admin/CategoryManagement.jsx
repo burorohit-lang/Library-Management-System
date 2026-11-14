@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaFolderPlus, FaTrash, FaLayerGroup, FaTag, FaSearch } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 
@@ -14,7 +14,7 @@ const CategoryManagement = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // MongoDB থেকে সব ক্যাটাগরি লোড করা
+
   const fetchCategories = async () => {
     try {
       setLoading(true);
@@ -32,7 +32,7 @@ const CategoryManagement = () => {
     fetchCategories();
   }, []);
 
-  // নতুন ক্যাটাগরি ও ম্যানুয়াল টাইপ সাবমিট করা
+
   const handleAddCategory = async (e) => {
     e.preventDefault();
     setError('');
@@ -63,7 +63,7 @@ const CategoryManagement = () => {
     }
   };
 
-  // ক্যাটাগরি ডিলিট করা
+
   const handleDeleteCategory = async (id, catName) => {
     if (!window.confirm(`Are you sure you want to delete "${catName}"?`)) return;
     setError('');

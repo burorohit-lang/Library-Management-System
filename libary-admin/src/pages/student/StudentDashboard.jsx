@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaBook,
@@ -32,7 +32,7 @@ const StudentDashboard = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // MongoDB ব্যাকএন্ড থেকে লাইভ ডেটা লোড করা
+
   const fetchStudentDashboard = useCallback(async () => {
     if (!studentEmail && !studentId) {
       navigate('/login');
@@ -59,7 +59,7 @@ const StudentDashboard = () => {
     fetchStudentDashboard();
   }, [fetchStudentDashboard]);
 
-  // স্টুডেন্ট নিজে থেকে বই ইস্যু করার জন্য Librarian-এর কাছে Request পাঠাবে
+
   const handleRequestBook = async (book) => {
     setError('');
     setSuccessMsg('');
@@ -82,12 +82,12 @@ const StudentDashboard = () => {
     }
   };
 
-  // শুধুমাত্র Active বা Overdue বইয়ের সংখ্যা ও জরিমানা হিসাব
+  
   const activeIssuedList = borrowedBooks.filter((b) => b.status === 'Active' || b.status === 'Overdue');
   const totalFine = activeIssuedList.reduce((sum, book) => sum + (book.fine || 0), 0);
   const totalAvailableBooks = libraryInventory.filter((b) => (b.availableCopies ?? 0) > 0).length;
 
-  // সার্চ ফিল্টার লজিক
+
   const filteredBooks = libraryInventory.filter((book) =>
     book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -2,7 +2,7 @@
 const router = express.Router();
 const Book = require('../models/Book');
 
-// সব বই লোড করা
+
 router.get('/', async (req, res) => {
   try {
     const books = await Book.find().sort({ createdAt: -1 });
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// নতুন বই যোগ করা (ম্যানুয়াল Category সহ)
+
 router.post('/', async (req, res) => {
   try {
     const { title, author, isbn, category, totalCopies, shelfLocation } = req.body;
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// বই ডিলিট করা
+
 router.delete('/:id', async (req, res) => {
   try {
     await Book.findByIdAndDelete(req.params.id);

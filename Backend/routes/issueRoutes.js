@@ -5,7 +5,7 @@ const Book = require('../models/Book');
 const User = require('../models/User');
 const SystemConfig = require('../models/SystemConfig');
 
-// ১. সব Active ও Overdue ইস্যু লোড করা
+
 const getActiveIssuesHandler = async (req, res) => {
   try {
     const config = await SystemConfig.findOne();
@@ -34,7 +34,7 @@ const getActiveIssuesHandler = async (req, res) => {
 router.get('/', getActiveIssuesHandler);
 router.get('/active', getActiveIssuesHandler);
 
-// ২. স্টুডেন্টদের পাঠানো সব Pending রিকোয়েস্ট লোড করা (Librarian-এর জন্য)
+
 router.get('/requests', async (req, res) => {
   try {
     const pendingRequests = await Issue.find({ status: 'Pending' }).sort({ createdAt: -1 });
@@ -44,7 +44,7 @@ router.get('/requests', async (req, res) => {
   }
 });
 
-// ৩. Librarian কর্তৃক রিকোয়েস্ট Accept (Approve) করা -> বই ইস্যু হয়ে যাবে ও স্টক কমবে
+
 router.put('/:id/approve', async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.id);
@@ -56,11 +56,11 @@ router.put('/:id/approve', async (req, res) => {
       return res.status(400).json({ message: `Cannot approve: "${issue.bookTitle}" is out of stock!` });
     }
 
-    // স্টক ১ কপি কমানো
+  
     book.availableCopies -= 1;
     await book.save();
 
-    // আজকের তারিখ থেকে ডিউ ডেট আপডেট করে Active করা
+
     const todayStr = new Date().toISOString().split('T')[0];
     const origIssue = new Date(issue.issueDate);
     const origDue = new Date(issue.dueDate);
@@ -78,7 +78,7 @@ router.put('/:id/approve', async (req, res) => {
   }
 });
 
-// ৪. Librarian কর্তৃক রিকোয়েস্ট Reject করা
+
 router.put('/:id/reject', async (req, res) => {
   try {
     const issue = await Issue.findByIdAndUpdate(req.params.id, { status: 'Rejected' }, { new: true });
@@ -89,8 +89,7 @@ router.put('/:id/reject', async (req, res) => {
   }
 });
 
-// ৫. Issue History
-router.get('/history', async (req, res) => {
+//  Issue Historyrouter.get('/history', async (req, res) => {
   try {
     const config = await SystemConfig.findOne();
     const finePerDay = config?.finePerDay ?? 10;
@@ -123,7 +122,7 @@ router.get('/history', async (req, res) => {
   }
 });
 
-// ৬. Direct Issue Book by Librarian/Admin
+
 router.post('/', async (req, res) => {
   try {
     const { studentName, studentEmail, bookTitle, issueDate, dueDate } = req.body;
@@ -165,7 +164,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ৭. Extend Due Date
+
 router.put('/:id/extend', async (req, res) => {
   try {
     const updated = await Issue.findByIdAndUpdate(
@@ -179,7 +178,6 @@ router.put('/:id/extend', async (req, res) => {
   }
 });
 
-// ৮. Return Book
 router.put('/:id/return', async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.id);

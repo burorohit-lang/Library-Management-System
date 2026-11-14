@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaUserShield, FaEnvelope, FaLock, FaKey, FaSave, FaShieldAlt } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import '../admin/AdminPages.css';
@@ -23,7 +23,6 @@ const AdminProfile = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  // MongoDB থেকে অ্যাডমিন প্রোফাইল লোড করা
   useEffect(() => {
     api.get('/admin/profile', { params: { email: savedEmail } })
       .then(({ data }) => {
@@ -36,7 +35,6 @@ const AdminProfile = () => {
         }
       })
       .catch(() => {
-        // ব্যাকএন্ড অফলাইন থাকলে localStorage-এর ডিফল্ট তথ্যই দেখাবে
       });
   }, [savedEmail]);
 
@@ -48,7 +46,7 @@ const AdminProfile = () => {
     }));
   };
 
-  // MongoDB-তে পাসওয়ার্ড আপডেট করা
+
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setError('');

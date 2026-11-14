@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaBook, FaPlus, FaSearch, FaTrash } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
@@ -12,7 +12,7 @@ const BookList = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // MongoDB থেকে সব বই ফেচ করা
+
   const fetchBooks = async () => {
     try {
       setLoading(true);
@@ -30,7 +30,6 @@ const BookList = () => {
     fetchBooks();
   }, []);
 
-  // বই ডিলিট করার হ্যান্ডলার
   const handleDeleteBook = async (bookId, bookTitle) => {
     if (!window.confirm(`Are you sure you want to delete "${bookTitle}"?`)) return;
 
@@ -44,7 +43,7 @@ const BookList = () => {
     }
   };
 
-  // লাইভ সার্চ ফিল্টার
+
   const filteredBooks = books.filter(
     (book) =>
       book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaSave, FaBuilding, FaRupeeSign, FaShieldAlt } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
 import '../admin/AdminPages.css';
@@ -19,7 +19,7 @@ const SystemConfig = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // ১. MongoDB থেকে বর্তমান সিস্টেম সেটিংস লোড করা
+
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -58,7 +58,7 @@ const SystemConfig = () => {
     }));
   };
 
-  // ২. সেটিংস MongoDB-তে সেভ করা
+
   const handleSaveConfig = async (e) => {
     e.preventDefault();
     setError('');
@@ -77,7 +77,7 @@ const SystemConfig = () => {
 
       const { data } = await api.put('/admin/config', payload);
 
-      // ব্যাকআপ হিসেবে localStorage-এও আপডেট রাখা হলো
+
       localStorage.setItem('systemSettings', JSON.stringify(payload));
       setSuccess(data?.message || 'System configurations updated successfully!');
       setTimeout(() => setSuccess(''), 3500);

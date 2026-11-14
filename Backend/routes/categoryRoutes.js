@@ -42,7 +42,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ক্যাটাগরি ডিলিট করা
+
 router.delete('/:id', async (req, res) => {
   try {
     await Category.findByIdAndDelete(req.params.id);

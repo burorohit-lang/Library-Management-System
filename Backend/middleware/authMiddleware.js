@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-// ১. টোকেন ভেরিফিকেশন মিডলওয়্যার (লগইন করা ইউজার চেক করতে)
+
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   
@@ -12,14 +12,14 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'library_secret_key_2026');
-    req.user = decoded; // ইউজার ইনফো যেমন: { id, email, role } রিকোয়েস্টে যুক্ত করা হলো
+    req.user = decoded; 
     next();
   } catch (err) {
     return res.status(403).json({ message: 'Invalid or expired token.' });
   }
 };
 
-// ২. শুধু অ্যাডমিন রাউটের জন্য (Admin Only)
+
 const verifyAdmin = (req, res, next) => {
   verifyToken(req, res, () => {
     if (req.user && req.user.role === 'admin') {
@@ -30,7 +30,7 @@ const verifyAdmin = (req, res, next) => {
   });
 };
 
-// ৩. স্টাফ বা লাইব্রেরিয়ান ও অ্যাডমিনের জন্য (Admin & Librarian)
+
 const verifyStaff = (req, res, next) => {
   verifyToken(req, res, () => {
     if (req.user && (req.user.role === 'admin' || req.user.role === 'librarian')) {

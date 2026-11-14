@@ -40,7 +40,6 @@ const AddBook = () => {
 
       setSuccess(data?.message || `Book "${title.trim()}" added successfully!`);
 
-      // ফর্ম রিসেট করা
       setTitle('');
       setAuthor('');
       setIsbn('');
@@ -123,7 +122,6 @@ const AddBook = () => {
             />
           </div>
 
-          {/* Manual Category Input (No Dropdown) */}
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
               Category (Manual) *

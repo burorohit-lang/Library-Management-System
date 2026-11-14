@@ -5,7 +5,7 @@ const Book = require('../models/Book');
 const Issue = require('../models/Issue');
 const SystemConfig = require('../models/SystemConfig');
 
-// স্টুডেন্ট ড্যাশবোর্ডের সব ডেটা লোড করা (Active, Pending, Rejected ও Catalog)
+
 router.get('/student-dashboard', async (req, res) => {
   try {
     const { email, studentId } = req.query;
@@ -21,7 +21,7 @@ router.get('/student-dashboard', async (req, res) => {
     const config = await SystemConfig.findOne();
     const finePerDay = config?.finePerDay ?? 10;
 
-    // স্টুডেন্টের ইস্যু করা বই (Active, Overdue, Pending, Rejected)
+  
     const rawIssues = targetEmail
       ? await Issue.find({
           studentEmail: { $regex: new RegExp(`^${targetEmail}$`, 'i') },
@@ -74,7 +74,7 @@ router.get('/student-dashboard', async (req, res) => {
   }
 });
 
-// স্টুডেন্ট নিজে থেকে বই ইস্যুর রিকোয়েস্ট পাঠাবে (Librarian-এর কাছে যাবে)
+
 router.post('/request-book', async (req, res) => {
   try {
     const { studentName, studentEmail, bookTitle, requestedDays } = req.body;
@@ -91,13 +91,13 @@ router.post('/request-book', async (req, res) => {
       return res.status(403).json({ message: 'Your account is deactivated. Contact the administrator.' });
     }
 
-    // বই স্টকে আছে কিনা চেক করা
+
     const book = await Book.findOne({ title: { $regex: new RegExp(`^${cleanTitle}$`, 'i') } });
     if (!book || book.availableCopies <= 0) {
       return res.status(400).json({ message: 'Sorry, this book is currently out of stock.' });
     }
 
-    // একই বইয়ের জন্য আগে থেকেই Pending বা Active রিকোয়েস্ট আছে কিনা চেক
+    
     const duplicate = await Issue.findOne({
       studentEmail: cleanEmail,
       bookTitle: book.title,
@@ -109,7 +109,7 @@ router.post('/request-book', async (req, res) => {
       });
     }
 
-    // সর্বোচ্চ বই নেওয়ার লিমিট চেক করা
+
     const config = await SystemConfig.findOne();
     const maxBooks = config?.maxBooksPerStudent ?? 3;
     const totalActiveOrPending = await Issue.countDocuments({

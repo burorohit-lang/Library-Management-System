@@ -24,7 +24,7 @@ const ActiveIssues = () => {
 
   const [success, setSuccess] = useState('');
 
-  // ১. ব্যাকএন্ড থেকে Active Issues লোড করা
+
   const fetchActiveIssues = async () => {
     try {
       setLoading(true);
@@ -42,7 +42,7 @@ const ActiveIssues = () => {
     fetchActiveIssues();
   }, []);
 
-  // ২. নতুন বই ইস্যু করে MongoDB-তে সেভ করা
+
   const handleIssueBook = async (e) => {
     e.preventDefault();
     if (!studentName || !bookTitle || !issueDate || !dueDate) return;
@@ -61,7 +61,7 @@ const ActiveIssues = () => {
       const { data } = await api.post('/issues', payload);
       setActiveBorrows([data, ...activeBorrows]);
 
-      // ফর্ম রিসেট
+    
       setStudentName('');
       setStudentEmail('');
       setBookTitle('');
@@ -78,14 +78,14 @@ const ActiveIssues = () => {
     }
   };
 
-  // এডিট মডাল ওপেন করা
+
   const openEditModal = (record) => {
     setEditingRecord(record);
     setNewDueDate(record.dueDate);
     setShowEditModal(true);
   };
 
-  // ৩. ডিউ ডেট এক্সটেন্ড করে MongoDB-তে আপডেট করা
+
   const handleUpdateDueDate = async (e) => {
     e.preventDefault();
     if (!newDueDate || !editingRecord) return;
@@ -111,7 +111,7 @@ const ActiveIssues = () => {
     }
   };
 
-  // ৪. বই ফেরত নেওয়া (Return Book)
+
   const handleReturnBook = async (record) => {
     const recordId = record._id || record.id;
     try {

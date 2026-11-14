@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaBookOpen,
@@ -44,7 +44,6 @@ const LibrarianIssueBook = () => {
   const [extendingIssue, setExtendingIssue] = useState(null);
   const [newDueDate, setNewDueDate] = useState('');
 
-  // MongoDB থেকে Pending Requests, Active Issues, Students এবং Books লোড করা
   const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
@@ -71,7 +70,7 @@ const LibrarianIssueBook = () => {
     fetchAllData();
   }, [fetchAllData]);
 
-  // স্টুডেন্টের রিকোয়েস্ট Accept (Approve) করা
+ 
   const handleApproveRequest = async (reqItem) => {
     setError('');
     setSuccess('');
@@ -84,7 +83,7 @@ const LibrarianIssueBook = () => {
     }
   };
 
-  // স্টুডেন্টের রিকোয়েস্ট Reject করা
+
   const handleRejectRequest = async (reqItem) => {
     if (!window.confirm(`Reject request from ${reqItem.studentName} for "${reqItem.bookTitle}"?`)) return;
     setError('');
