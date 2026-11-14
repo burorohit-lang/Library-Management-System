@@ -1,29 +1,28 @@
-import { useState, useEffect } from 'react';
-import { FaPlus, FaTrash, FaLayerGroup } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaFolderPlus, FaTrash, FaLayerGroup, FaTag, FaSearch } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
-import './AdminPages.css';
-import './CategoryManagement.css';
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [categoryType, setCategoryType] = useState('Academic');
+  const [name, setName] = useState('');
+  const [type, setType] = useState('');
   const [description, setDescription] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // ১. MongoDB থেকে সব ক্যাটাগরি লোড করা
+  // MongoDB থেকে সব ক্যাটাগরি লোড করা
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/categories');
-      setCategories(Array.isArray(data) ? data : (data.categories || []));
       setError('');
+      const { data } = await api.get('/categories');
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(getErrorMessage(err, 'Could not load categories from server.'));
+      setError(getErrorMessage(err, 'Failed to load categories from server.'));
     } finally {
       setLoading(false);
     }
@@ -33,168 +32,220 @@ const CategoryManagement = () => {
     fetchCategories();
   }, []);
 
-  // ২. নতুন ক্যাটাগরি যোগ করে MongoDB-তে সেভ করা
+  // নতুন ক্যাটাগরি ও ম্যানুয়াল টাইপ সাবমিট করা
   const handleAddCategory = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!newCategoryName.trim()) {
-      setError('Category name cannot be empty!');
+    if (!name.trim() || !type.trim()) {
+      setError('Both Category Name and Category Type are required!');
       return;
     }
 
     try {
       setSubmitting(true);
-      const payload = {
-        name: newCategoryName.trim(),
-        type: categoryType,
-        description: description.trim() || 'No description provided'
-      };
+      const { data } = await api.post('/categories', {
+        name: name.trim(),
+        type: type.trim(),
+        description: description.trim()
+      });
 
-      const { data } = await api.post('/categories', payload);
-      setCategories([data, ...categories]);
-
-      setSuccess('Category added successfully to database!');
-      setNewCategoryName('');
+      setCategories((prev) => [data, ...prev]);
+      setSuccess(`Category "${data.name}" (${data.type}) added successfully!`);
+      setName('');
+      setType('');
       setDescription('');
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to add category.'));
+      setError(getErrorMessage(err, 'Failed to add new category.'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ৩. MongoDB থেকে ক্যাটাগরি ডিলিট করা
-  const handleDeleteCategory = async (categoryItem) => {
-    const categoryId = categoryItem._id || categoryItem.id;
-    if (!window.confirm(`Are you sure you want to delete "${categoryItem.name}"?`)) return;
-
+  // ক্যাটাগরি ডিলিট করা
+  const handleDeleteCategory = async (id, catName) => {
+    if (!window.confirm(`Are you sure you want to delete "${catName}"?`)) return;
+    setError('');
+    setSuccess('');
     try {
-      setError('');
-      await api.delete(`/categories/${categoryId}`);
-      setCategories(categories.filter((cat) => (cat._id || cat.id) !== categoryId));
-
-      setSuccess('Category deleted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      await api.delete(`/categories/${id}`);
+      setCategories((prev) => prev.filter((item) => item._id !== id));
+      setSuccess(`Category "${catName}" deleted.`);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete category.'));
     }
   };
 
+  const filteredCategories = categories.filter(
+    (cat) =>
+      cat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cat.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cat.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="category-management-container">
-      {/* Header Section */}
-      <div className="category-header">
-        <div>
-          <h2>Manual Category Management</h2>
-          <p>Create and manage available categories (Academic like BCA/BBA & Book Genres) manually.</p>
-        </div>
+    <div style={{ padding: '24px', maxWidth: '1150px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+      
+      {/* Page Header */}
+      <div style={{ backgroundColor: '#ffffff', padding: '22px 26px', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+        <h2 style={{ margin: 0, fontSize: '20px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <FaLayerGroup style={{ color: '#2563eb' }} /> Manual Category Management
+        </h2>
+        <p style={{ margin: '5px 0 0', fontSize: '13.5px', color: '#64748b' }}>
+          Create and organize custom book categories and manual category types for the library catalog.
+        </p>
       </div>
 
-      {error && <div className="category-error-box">{error}</div>}
-      {success && <div className="category-success-box">{success}</div>}
-
-      <div className="category-content-grid">
-        
-        {/* Left: Add New Category Form */}
-        <div className="category-form-card">
-          <h3><FaPlus style={{ marginRight: '8px' }} /> Add New Category</h3>
-          <form onSubmit={handleAddCategory} className="cat-form">
-            
-            <div className="cat-input-group">
-              <label>Category Type</label>
-              <select 
-                value={categoryType} 
-                onChange={(e) => setCategoryType(e.target.value)}
-                className="cat-select"
-              >
-                <option value="Academic">Academic System (e.g. BCA, BBA)</option>
-                <option value="Book Genre">Book Genre / Subject</option>
-              </select>
-            </div>
-
-            <div className="cat-input-group">
-              <label>Category Name</label>
-              <input 
-                type="text" 
-                value={newCategoryName} 
-                onChange={(e) => setNewCategoryName(e.target.value)} 
-                placeholder="e.g. Data Structures / BCA Sem 1" 
-                required
-                className="cat-input"
-              />
-            </div>
-
-            <div className="cat-input-group">
-              <label>Description</label>
-              <textarea 
-                value={description} 
-                onChange={(e) => setDescription(e.target.value)} 
-                placeholder="Brief description of this category..." 
-                rows="3"
-                className="cat-textarea"
-              ></textarea>
-            </div>
-
-            <button type="submit" disabled={submitting} className="cat-submit-btn">
-              <FaPlus /> {submitting ? 'Saving...' : 'Save Category'}
-            </button>
-          </form>
+      {/* Status Messages */}
+      {error && (
+        <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '10px', marginBottom: '18px', fontSize: '13.5px', border: '1px solid #fecaca' }}>
+          {error}
         </div>
+      )}
+      {success && (
+        <div style={{ backgroundColor: '#dcfce7', color: '#16a34a', padding: '12px 16px', borderRadius: '10px', marginBottom: '18px', fontSize: '13.5px', border: '1px solid #bbf7d0' }}>
+          {success}
+        </div>
+      )}
 
-        {/* Right: Available Categories Table / List */}
-        <div className="category-list-card">
-          <h3><FaLayerGroup style={{ marginRight: '8px' }} /> Available Categories List ({categories.length})</h3>
+      {/* Add New Category Form (Manual Category Type Input) */}
+      <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '26px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+        <h3 style={{ margin: '0 0 18px 0', fontSize: '16.5px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FaFolderPlus style={{ color: '#2563eb' }} /> Add New Category
+        </h3>
+
+        <form onSubmit={handleAddCategory} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
           
-          <div className="cat-table-responsive">
-            <table className="cat-table">
-              <thead>
-                <tr>
-                  <th>Category Name</th>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="4" className="text-center">Loading categories...</td>
-                  </tr>
-                ) : categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <tr key={cat._id || cat.id}>
-                      <td><strong>{cat.name}</strong></td>
-                      <td>
-                        <span className={`cat-badge ${cat.type?.toLowerCase().includes('academic') ? 'academic' : 'genre'}`}>
-                          {cat.type}
-                        </span>
-                      </td>
-                      <td>{cat.description}</td>
-                      <td>
-                        <button 
-                          onClick={() => handleDeleteCategory(cat)} 
-                          className="cat-delete-btn"
-                          title="Delete Category"
-                        >
-                          <FaTrash />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="text-center">No categories available. Add one!</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {/* Category Name */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              Category Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="e.g. Computer Science, Fiction"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Manual Category Type Input (No Dropdown) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              Category Type (Manual) *
+            </label>
+            <input
+              type="text"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              required
+              placeholder="e.g. Academic, Reference, Journal, Novel"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              Description (Optional)
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Short description of this category"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FaFolderPlus /> {submitting ? 'Saving...' : 'Save Category'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Categories Table */}
+      <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
+          <h3 style={{ margin: 0, fontSize: '16.5px', color: '#0f172a' }}>
+            Existing Categories ({filteredCategories.length})
+          </h3>
+
+          <div style={{ position: 'relative', width: '270px' }}>
+            <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px' }} />
+            <input
+              type="text"
+              placeholder="Search category or type..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13.5px', boxSizing: 'border-box' }}
+            />
           </div>
         </div>
 
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
+                <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Category Name</th>
+                <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Category Type</th>
+                <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Description</th>
+                <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                    Loading categories...
+                  </td>
+                </tr>
+              ) : filteredCategories.length > 0 ? (
+                filteredCategories.map((cat) => (
+                  <tr key={cat._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px 14px', fontWeight: '600', color: '#0f172a' }}>
+                      {cat.name}
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <FaTag size={10} /> {cat.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 14px', color: '#64748b' }}>
+                      {cat.description || 'No description provided'}
+                    </td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                      <button
+                        onClick={() => handleDeleteCategory(cat._id, cat.name)}
+                        style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', padding: '7px 12px', borderRadius: '6px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <FaTrash size={11} /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                    No categories found. Add your first category above!
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
     </div>
   );
 };
