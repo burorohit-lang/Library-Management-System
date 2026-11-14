@@ -2,6 +2,7 @@
 const router = express.Router();
 const Book = require('../models/Book');
 
+// সব বই লোড করা
 router.get('/', async (req, res) => {
   try {
     const books = await Book.find().sort({ createdAt: -1 });
@@ -11,26 +12,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+// নতুন বই যোগ করা (ম্যানুয়াল Category সহ)
 router.post('/', async (req, res) => {
   try {
     const { title, author, isbn, category, totalCopies, shelfLocation } = req.body;
-    const copies = Number(totalCopies) || 1;
+
+    if (!title || !title.trim() || !author || !author.trim() || !category || !category.trim()) {
+      return res.status(400).json({ message: 'Book Title, Author, and Category are required!' });
+    }
+
+    const copies = Math.max(1, Number(totalCopies) || 1);
+
     const newBook = new Book({
-      title,
-      author,
-      isbn: isbn || 'N/A',
-      category,
+      title: title.trim(),
+      author: author.trim(),
+      isbn: isbn?.trim() || 'N/A',
+      category: category.trim(),
       totalCopies: copies,
       availableCopies: copies,
-      shelfLocation: shelfLocation || 'Main Rack'
+      shelfLocation: shelfLocation?.trim() || 'Main Rack'
     });
+
     const saved = await newBook.save();
-    res.status(201).json(saved);
+    res.status(201).json({
+      message: `Book "${saved.title}" added to catalog successfully!`,
+      book: saved
+    });
   } catch (error) {
     res.status(500).json({ message: 'Failed to add book', error: error.message });
   }
 });
 
+// বই ডিলিট করা
 router.delete('/:id', async (req, res) => {
   try {
     await Book.findByIdAndDelete(req.params.id);
