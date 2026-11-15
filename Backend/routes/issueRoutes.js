@@ -89,7 +89,8 @@ router.put('/:id/reject', async (req, res) => {
   }
 });
 
-//  Issue Historyrouter.get('/history', async (req, res) => {
+// Issue History
+router.get('/history', async (req, res) => {
   try {
     const config = await SystemConfig.findOne();
     const finePerDay = config?.finePerDay ?? 10;

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// সবগুলো রাউট ফাইল ইম্পোর্ট করা
+
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const librarianRoutes = require('./routes/librarianRoutes');
@@ -15,7 +15,7 @@ const studentLibraryRoutes = require('./routes/studentLibraryRoutes');
 
 const app = express();
 
-// মিডলওয়্যার (Middleware) - Allowed Origins Updated for Vercel & Localhost
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -40,7 +40,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB ডাটাবেস কানেকশন
+
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/library_management_db';
 
 mongoose
@@ -53,7 +53,7 @@ mongoose
     process.exit(1);
   });
 
-// হেলথ চেক রুট (সার্ভার চালু আছে কিনা দেখার জন্য)
+
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -61,7 +61,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// API রাউট মাউন্টিং (ফ্রন্টএন্ডের সব API কলের সাথে হুবহু মিল রেখে)
+
 app.use('/api/auth', authRoutes);                 // Login, Register, Forgot/Reset Password, Session Check
 app.use('/api/admin', adminRoutes);               // Overview, Analytics, Admin Profile, System Config
 app.use('/api/librarian', librarianRoutes);       // Librarian Dashboard Stats & Logs
@@ -71,12 +71,12 @@ app.use('/api/issues', issueRoutes);              // Active Issues, Issue Book, 
 app.use('/api/categories', categoryRoutes);       // Manual Category Management
 app.use('/api/library', studentLibraryRoutes);    // Student Dashboard (Issued Books, Fine, Catalog Search)
 
-// ৪-০-৪ (404) রাউট হ্যান্ডলার
+
 app.use((req, res) => {
   res.status(404).json({ message: `Route ${req.originalUrl} not found on this server.` });
 });
 
-// গ্লোবাল এরর হ্যান্ডলার
+
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
   res.status(500).json({
@@ -85,7 +85,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// সার্ভার চালু করা
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
