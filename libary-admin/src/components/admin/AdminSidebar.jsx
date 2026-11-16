@@ -184,7 +184,6 @@ const AdminSidebar = ({ isCollapsed }) => {
           {openMenus.issues && !isCollapsed && (
             <div className="submenu-container">
               <NavLink to="/admin/issues/borrow" className="submenu-link">Issue a Book</NavLink>
-              <NavLink to="/admin/issues/active" className="submenu-link">Active Issues</NavLink>
               <NavLink to="/admin/issues/history" className="submenu-link">History & Returns</NavLink>
             </div>
           )}

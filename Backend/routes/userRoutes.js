@@ -1,100 +1,187 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-// Add User (Student or Librarian)
-router.post('/', async (req, res) => {
+// Helper function to normalize user fields safely (prevents 'undefined')
+function formatUserDoc(u) {
+  const doc = u.toObject ? u.toObject() : { ...u };
+  return {
+    ...doc,
+    universityRoll: doc.universityRoll || doc.rollNumber || '',
+    stream: doc.stream || doc.department || '',
+    semester: doc.semester || '',
+    phone: doc.phone || '',
+    status: doc.status || 'Active'
+  };
+}
+
+// GET /api/users (All users অথবা ?role=student বা ?role=librarian দিয়ে ফিল্টার)
+router.get('/', async (req, res) => {
   try {
-    const { name, email, password, role, shift } = req.body;
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existing) return res.status(400).json({ message: `A ${existing.role} with this email already exists!` });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = new User({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      password: hashedPassword,
-      role: role || 'student',
-      shift: role === 'librarian' ? shift : undefined,
-      status: 'Active'
-    });
-    const saved = await newUser.save();
-    const obj = saved.toObject();
-    delete obj.password;
-    res.status(201).json({ message: 'User account created successfully!', user: obj });
+    const { role } = req.query;
+    const filter = role ? { role } : {};
+    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
+    res.status(200).json(users.map(formatUserDoc));
   } catch (error) {
-    res.status(500).json({ message: 'Failed to create user', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch users.', error: error.message });
   }
 });
 
-// Get All Students
+// GET /api/users/students (All Registered Students)
 router.get('/students', async (req, res) => {
   try {
     const students = await User.find({ role: 'student' }).select('-password').sort({ createdAt: -1 });
-    res.status(200).json(students);
+    res.status(200).json(students.map(formatUserDoc));
   } catch (error) {
-    res.status(500).json({ message: 'Failed to load students', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch students.', error: error.message });
   }
 });
 
-// Get All Librarians
+// GET /api/users/librarians (All Librarians List)
 router.get('/librarians', async (req, res) => {
   try {
     const librarians = await User.find({ role: 'librarian' }).select('-password').sort({ createdAt: -1 });
-    const formatted = librarians.map((lib) => ({
-      _id: lib._id,
-      name: lib.name,
-      email: lib.email,
-      shift: lib.shift || 'Morning (09:00 AM - 05:00 PM)',
-      joinedDate: new Date(lib.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: lib.status || 'Active',
-      isDefault: lib.email === 'librarian@library.com'
-    }));
-    res.status(200).json(formatted);
+    res.status(200).json(librarians.map(formatUserDoc));
   } catch (error) {
-    res.status(500).json({ message: 'Failed to load librarians', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch librarians.', error: error.message });
   }
 });
 
-// Edit Student
+// POST /api/users (Admin প্যানেল থেকে নতুন Student বা Librarian তৈরি করার জন্য)
+router.post(['/', '/add'], async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      role,
+      universityRoll,
+      stream,
+      semester,
+      phone,
+      status
+    } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ message: 'An account with this email already exists.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password.trim(), salt);
+
+    const newUserPayload = {
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: role || 'student',
+      universityRoll: universityRoll ? universityRoll.trim() : '',
+      rollNumber: universityRoll ? universityRoll.trim() : '',
+      stream: stream ? stream.trim() : '',
+      department: stream ? stream.trim() : '',
+      semester: semester ? semester.trim() : '',
+      phone: phone ? phone.trim() : '',
+      status: status || 'Active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    let savedUser;
+    try {
+      const userDoc = new User(newUserPayload);
+      savedUser = await userDoc.save();
+    } catch (e) {
+      const inserted = await User.collection.insertOne(newUserPayload);
+      savedUser = { _id: inserted.insertedId, ...newUserPayload };
+    }
+
+    const userResponse = formatUserDoc(savedUser);
+    delete userResponse.password;
+
+    res.status(201).json({
+      message: `${(role || 'User').toUpperCase()} "${name.trim()}" created successfully!`,
+      user: userResponse
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create user.', error: error.message });
+  }
+});
+
+// PUT /api/users/:id (Edit Student / Librarian Details + Active / Deactive Status)
 router.put('/:id', async (req, res) => {
   try {
-    const { name, email, phone, department } = req.body;
-    const updated = await User.findByIdAndUpdate(req.params.id, { name, email, phone, department }, { new: true }).select('-password');
-    res.status(200).json(updated);
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid user ID.' });
+    }
+
+    const { name, email, universityRoll, stream, semester, phone, status, password } = req.body;
+
+    const updateFields = {
+      updatedAt: new Date()
+    };
+
+    if (name !== undefined) updateFields.name = name.trim();
+    if (email !== undefined) updateFields.email = email.trim().toLowerCase();
+    if (universityRoll !== undefined) {
+      updateFields.universityRoll = universityRoll.trim();
+      updateFields.rollNumber = universityRoll.trim();
+    }
+    if (stream !== undefined) {
+      updateFields.stream = stream.trim();
+      updateFields.department = stream.trim();
+    }
+    if (semester !== undefined) updateFields.semester = semester.trim();
+    if (phone !== undefined) updateFields.phone = phone.trim();
+    if (status !== undefined) updateFields.status = status;
+
+    if (password && password.trim().length >= 6) {
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(password.trim(), salt);
+    }
+
+    await User.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(id) },
+      { $set: updateFields }
+    );
+
+    const updatedUser = await User.findById(id).select('-password');
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({
+      message: `"${updatedUser.name}" updated successfully!`,
+      user: formatUserDoc(updatedUser)
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update user', error: error.message });
+    res.status(500).json({ message: 'Failed to update user.', error: error.message });
   }
 });
 
-// Toggle Status
-router.patch('/:id/status', async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    user.status = user.status === 'Active' ? 'Deactive' : 'Active';
-    await user.save();
-    const obj = user.toObject();
-    delete obj.password;
-    res.status(200).json(obj);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to toggle status', error: error.message });
-  }
-});
-
-// Delete Librarian
+// DELETE /api/users/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    if (user.email === 'librarian@library.com') return res.status(403).json({ message: 'Cannot delete primary librarian' });
-    await User.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Removed successfully' });
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid user ID.' });
+    }
+
+    const deleted = await User.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({ message: 'User deleted successfully.' });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to delete user', error: error.message });
+    res.status(500).json({ message: 'Failed to delete user.', error: error.message });
   }
 });
 

@@ -1,20 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaClipboardCheck,
   FaRupeeSign,
   FaBoxes,
   FaSignOutAlt,
-  FaPlusCircle,
   FaSyncAlt,
-  FaBell
+  FaBell,
+  FaHome,
+  FaKey,
+  FaChevronDown
 } from 'react-icons/fa';
 import api, { getErrorMessage } from '../../lib/api';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
 import './LibrarianDashboard.css';
 
 const LibrarianDashboard = () => {
   const navigate = useNavigate();
   const librarianName = localStorage.getItem('userName') || 'Librarian Staff';
+  const librarianEmail = localStorage.getItem('userEmail') || '';
 
   const [stats, setStats] = useState({
     totalAvailableBooks: 0,
@@ -27,6 +31,22 @@ const LibrarianDashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Dropdown & Modal states
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchLibrarianData = async () => {
     try {
@@ -48,17 +68,40 @@ const LibrarianDashboard = () => {
   }, []);
 
   const handleLogout = () => {
+    setDropdownOpen(false);
     localStorage.clear();
     navigate('/login');
+  };
+
+  const handlePasswordSuccess = (msg) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 4000);
+  };
+
+  const dropdownItemStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    border: 'none',
+    background: 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '13.5px',
+    fontWeight: '500',
+    color: '#334155',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.15s'
   };
 
   return (
     <div className="librarian-portal-container">
       <header className="librarian-header">
         <div className="librarian-welcome">
-          <h2>Library Staff Portal</h2>
-          <p>Welcome back, <strong>{librarianName}</strong></p>
+          <h2>Library Management System</h2>
+          <p>Welcome<strong>{librarianName}</strong></p>
         </div>
+
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={() => navigate('/librarian/issue-book')}
@@ -96,15 +139,123 @@ const LibrarianDashboard = () => {
             <FaSyncAlt /> Refresh
           </button>
 
-          <button onClick={handleLogout} className="lib-logout-btn">
-            <FaSignOutAlt style={{ marginRight: '6px' }} /> Logout
-          </button>
+          {/* User Profile Dropdown */}
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setDropdownOpen((prev) => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                padding: '6px 12px 6px 8px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {librarianName.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a', lineHeight: 1.2 }}>
+                  {librarianName}
+                </div>
+                {librarianEmail && (
+                  <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.2 }}>
+                    {librarianEmail}
+                  </div>
+                )}
+              </div>
+              <FaChevronDown
+                size={11}
+                style={{
+                  color: '#64748b',
+                  transition: 'transform 0.2s ease',
+                  transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}
+              />
+            </button>
+
+            {dropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 'calc(100% + 8px)',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '10px',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                  border: '1px solid #e2e8f0',
+                  minWidth: '195px',
+                  overflow: 'hidden',
+                  zIndex: 1000
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    navigate('/librarian/dashboard');
+                  }}
+                  style={dropdownItemStyle}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <FaHome style={{ color: '#2563eb' }} /> Home
+                </button>
+
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setIsPasswordModalOpen(true);
+                  }}
+                  style={dropdownItemStyle}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <FaKey style={{ color: '#2563eb' }} /> Change Password
+                </button>
+
+                <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '2px 0' }} />
+
+                <button
+                  onClick={handleLogout}
+                  style={{ ...dropdownItemStyle, color: '#dc2626', fontWeight: '600' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fef2f2')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <FaSignOutAlt /> Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {error && (
         <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '13px' }}>
           {error}
+        </div>
+      )}
+
+      {successMsg && (
+        <div style={{ backgroundColor: '#dcfce7', color: '#16a34a', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', fontWeight: '500' }}>
+          {successMsg}
         </div>
       )}
 
@@ -209,6 +360,13 @@ const LibrarianDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Reusable Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onSuccess={handlePasswordSuccess}
+      />
     </div>
   );
 };

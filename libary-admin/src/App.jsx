@@ -22,18 +22,23 @@ import AdminProfile from './pages/admin/AdminProfile';
 import SystemConfig from './pages/admin/SystemConfig';
 
 // Librarian Portal Pages
-import LibrarianDashboard from './pages/librarian/LibrarianDashboard';
+import LibrarianLayout from './pages/librarian/LibrarianLayout';
+import LibrarianOverview from './pages/librarian/LibrarianOverview';
 import LibrarianIssueBook from './pages/librarian/LibrarianIssueBook';
 import BookListLibrarian from './pages/admin/BookList';
 import IssueHistoryLibrarian from './pages/admin/IssueHistory';
+import CirculationLogs from './pages/librarian/CirculationLogs';
 
-// Student Portal Page
-import StudentDashboard from './pages/student/StudentDashboard';
+// Student Portal Pages
+import StudentLayout from './pages/student/StudentLayout';
+import StudentOverview from './pages/student/StudentOverview';
+import MyBorrowedBooks from './pages/student/MyBorrowedBooks';
+import LibraryCatalog from './pages/student/LibraryCatalog';
+import StudentHistory from './pages/student/StudentHistory';
 
 function App() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const currentRole = localStorage.getItem('role');
-
 
   useEffect(() => {
     const checkBackendSession = async () => {
@@ -78,6 +83,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/register-student" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
@@ -87,7 +93,7 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<Overview />} />
             <Route path="dashboard/analytics" element={<Analytics />} />
-            
+
             {/* Manual Categories Routes */}
             <Route path="categories/books" element={<CategoryManagement />} />
 
@@ -96,7 +102,7 @@ function App() {
             <Route path="users/students" element={<StudentUsers />} />
             <Route path="users/librarians" element={<LibrarianUsers />} />
             <Route path="users/add" element={<AddUser />} />
-            
+
             {/* Issued Books & Student Borrowing Routes */}
             <Route path="issues/borrow" element={<ActiveIssues />} />
             <Route path="issues/active" element={<ActiveIssues />} />
@@ -107,21 +113,34 @@ function App() {
           </Route>
         </Route>
 
-        {/* Librarian Protected Portal Routes */}
+        {/* Librarian Protected Portal Nested Routes */}
         <Route element={<ProtectedRoute allowedRoles={['librarian', 'admin']} />}>
-          <Route path="/librarian/dashboard" element={<LibrarianDashboard />} />
-          <Route path="/librarian/issue-book" element={<LibrarianIssueBook />} />
-          <Route path="/librarian/active-checkouts" element={<LibrarianIssueBook />} />
-          <Route path="/librarian/inventory" element={<BookListLibrarian />} />
-          <Route path="/librarian/fines" element={<IssueHistoryLibrarian />} />
+          <Route path="/librarian" element={<LibrarianLayout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<LibrarianOverview />} />
+            <Route path="issue-book" element={<LibrarianIssueBook />} />
+            <Route path="active-checkouts" element={<LibrarianIssueBook />} />
+            <Route path="inventory" element={<BookListLibrarian />} />
+            <Route path="fines" element={<IssueHistoryLibrarian />} />
+            <Route path="logs" element={<CirculationLogs />} />
+          </Route>
         </Route>
 
-        {/* Student Protected Portal Routes */}
+        {/* Student Protected Portal Nested Routes */}
         <Route element={<ProtectedRoute allowedRoles={['student', 'admin']} />}>
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
+          <Route path="/student" element={<StudentLayout />}>
+            <Route index element={<StudentOverview />} />
+            <Route path="dashboard" element={<StudentOverview />} />
+            <Route path="borrowed" element={<MyBorrowedBooks />} />
+            <Route path="my-books" element={<MyBorrowedBooks />} />
+            <Route path="catalog" element={<LibraryCatalog />} />
+            <Route path="history" element={<StudentHistory />} />
+          </Route>
+
+          {/* Redirect old student dashboard alias */}
+          <Route path="/student-dashboard" element={<Navigate to="/student" replace />} />
         </Route>
-        
+
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

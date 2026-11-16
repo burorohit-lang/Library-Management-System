@@ -1,494 +1,626 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import {
-  FaBookOpen,
-  FaCalendarAlt,
-  FaCheckCircle,
-  FaPlusCircle,
-  FaArrowLeft,
-  FaSearch,
+  FaBookMedical,
   FaUserGraduate,
   FaBook,
-  FaBell,
-  FaCheck,
-  FaTimes
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaUndoAlt,
+  FaSyncAlt,
+  FaSearch,
+  FaTimes,
+  FaChevronDown,
+  FaHourglassHalf,
+  FaTimesCircle
 } from 'react-icons/fa';
-import api, { getErrorMessage } from '../../lib/api';
+
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
 const LibrarianIssueBook = () => {
-  const navigate = useNavigate();
-
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [issues, setIssues] = useState([]);
   const [students, setStudents] = useState([]);
   const [books, setBooks] = useState([]);
+  const [activeIssues, setActiveIssues] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+
+  // Searchable Student States
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+  const studentDropdownRef = useRef(null);
+
+  const [selectedBookId, setSelectedBookId] = useState('');
+  const [issueDate, setIssueDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toISOString().split('T')[0];
+  });
+
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  // Direct Issue Form State
-  const todayStr = new Date().toISOString().split('T')[0];
-  const defaultDueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  // বাইরে ক্লিক করলে ড্রপডাউন বন্ধ হওয়ার জন্য
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target)) {
+        setShowStudentDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentName, setStudentName] = useState('');
-  const [studentEmail, setStudentEmail] = useState('');
-  const [bookTitle, setBookTitle] = useState('');
-  const [issueDate, setIssueDate] = useState(todayStr);
-  const [dueDate, setDueDate] = useState(defaultDueDate);
+  const authHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    };
+  };
 
-  // Extend Modal State
-  const [extendingIssue, setExtendingIssue] = useState(null);
-  const [newDueDate, setNewDueDate] = useState('');
-
-  const fetchAllData = useCallback(async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError('');
-      const [reqRes, issuesRes, studentsRes, booksRes] = await Promise.all([
-        api.get('/issues/requests'),
-        api.get('/issues/active'),
-        api.get('/users/students'),
-        api.get('/books')
-      ]);
 
-      setPendingRequests(Array.isArray(reqRes.data) ? reqRes.data : []);
-      setIssues(Array.isArray(issuesRes.data) ? issuesRes.data : []);
-      setStudents(Array.isArray(studentsRes.data) ? studentsRes.data : []);
-      setBooks(Array.isArray(booksRes.data) ? booksRes.data : []);
+      const res = await fetch(`${API_BASE}/librarian/dashboard`, {
+        headers: authHeaders()
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to load librarian data.');
+      }
+
+      setStudents(Array.isArray(data.students) ? data.students : []);
+      setBooks(Array.isArray(data.books) ? data.books : []);
+      setActiveIssues(Array.isArray(data.activeIssues) ? data.activeIssues : []);
+      setPendingRequests(Array.isArray(data.pendingRequests) ? data.pendingRequests : []);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load library circulation data.'));
+      setError(err.message || 'Could not fetch records.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+    loadData();
+  }, []);
 
- 
-  const handleApproveRequest = async (reqItem) => {
-    setError('');
-    setSuccess('');
-    try {
-      const { data } = await api.put(`/issues/${reqItem._id}/approve`);
-      setSuccess(data?.message || `Approved "${reqItem.bookTitle}" for ${reqItem.studentName}!`);
-      fetchAllData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to approve book request.'));
-    }
+  // শিক্ষার্থী সার্চ ফিল্টার
+  const filteredStudents = students.filter((st) => {
+    const q = studentSearch.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      st.name?.toLowerCase().includes(q) ||
+      st.universityRoll?.toLowerCase().includes(q) ||
+      st.email?.toLowerCase().includes(q) ||
+      st.stream?.toLowerCase().includes(q)
+    );
+  });
+
+  const handleSelectStudent = (student) => {
+    setSelectedStudentId(student._id);
+    setStudentSearch(
+      `${student.name}${student.universityRoll ? ` (${student.universityRoll})` : ''} — ${student.email}`
+    );
+    setShowStudentDropdown(false);
   };
 
-
-  const handleRejectRequest = async (reqItem) => {
-    if (!window.confirm(`Reject request from ${reqItem.studentName} for "${reqItem.bookTitle}"?`)) return;
-    setError('');
-    setSuccess('');
-    try {
-      await api.put(`/issues/${reqItem._id}/reject`);
-      setSuccess(`Request from ${reqItem.studentName} has been rejected.`);
-      fetchAllData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to reject request.'));
-    }
+  const handleClearStudent = () => {
+    setSelectedStudentId('');
+    setStudentSearch('');
+    setShowStudentDropdown(true);
   };
 
-  const handleSelectStudent = (e) => {
-    const id = e.target.value;
-    setSelectedStudentId(id);
-    const found = students.find((s) => s._id === id);
-    if (found) {
-      setStudentName(found.name);
-      setStudentEmail(found.email);
-    } else {
-      setStudentName('');
-      setStudentEmail('');
+  // স্টুডেন্টের রিকোয়েস্ট Approve বা Reject করা
+  const handleRequestAction = async (requestId, actionType) => {
+    try {
+      setError('');
+      setSuccessMsg('');
+      const res = await fetch(`${API_BASE}/librarian/handle-request/${requestId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ action: actionType })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || `Failed to ${actionType} request.`);
+      }
+
+      setSuccessMsg(data.message || `Request ${actionType}ed successfully!`);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Action failed.');
     }
   };
 
   const handleIssueSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
+    setSuccessMsg('');
+
+    if (!selectedStudentId) {
+      setError('Please search and select a valid student from the dropdown list.');
+      return;
+    }
+
+    if (!selectedBookId) {
+      setError('Please select an available book.');
+      return;
+    }
+
+    const studentObj = students.find((s) => s._id === selectedStudentId);
+    const bookObj = books.find((b) => b._id === selectedBookId);
 
     try {
       setSubmitting(true);
-      const { data } = await api.post('/issues', {
-        studentName: studentName.trim(),
-        studentEmail: studentEmail.trim(),
-        bookTitle: bookTitle.trim(),
-        issueDate,
-        dueDate
+      const res = await fetch(`${API_BASE}/librarian/issue-book`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          studentName: studentObj?.name,
+          studentEmail: studentObj?.email,
+          universityRoll: studentObj?.universityRoll,
+          bookId: selectedBookId,
+          bookTitle: bookObj?.title,
+          issueDate,
+          dueDate
+        })
       });
 
-      setSuccess(`Book "${data.bookTitle}" issued to ${data.studentName} successfully!`);
-      setSelectedStudentId('');
-      setStudentName('');
-      setStudentEmail('');
-      setBookTitle('');
-      fetchAllData();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to issue book.');
+      }
+
+      setSuccessMsg(data.message || 'Book issued successfully!');
+      setSelectedBookId('');
+      await loadData();
     } catch (err) {
-      setError(getErrorMessage(err, 'Could not issue the book.'));
+      setError(err.message || 'Error issuing book.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleReturnBook = async (id, title) => {
-    if (!window.confirm(`Confirm return for "${title}"?`)) return;
+  const handleReturnBook = async (issueId) => {
     try {
-      await api.put(`/issues/${id}/return`);
-      setSuccess(`"${title}" marked as returned and stock updated!`);
-      fetchAllData();
+      setError('');
+      setSuccessMsg('');
+      const res = await fetch(`${API_BASE}/librarian/return-book/${issueId}`, {
+        method: 'PUT',
+        headers: authHeaders()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to return book.');
+      }
+
+      setSuccessMsg(data.message || 'Book returned successfully!');
+      await loadData();
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to process book return.'));
+      setError(err.message || 'Error returning book.');
     }
   };
 
-  const handleExtendSubmit = async (e) => {
-    e.preventDefault();
-    if (!extendingIssue || !newDueDate) return;
-    try {
-      await api.put(`/issues/${extendingIssue._id}/extend`, { newDueDate });
-      setSuccess(`Due date extended to ${newDueDate}!`);
-      setExtendingIssue(null);
-      fetchAllData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to extend due date.'));
-    }
-  };
+  const filteredIssues = activeIssues.filter((item) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      item.studentName?.toLowerCase().includes(q) ||
+      item.studentEmail?.toLowerCase().includes(q) ||
+      item.universityRoll?.toLowerCase().includes(q) ||
+      item.bookTitle?.toLowerCase().includes(q)
+    );
+  });
 
-  const filteredIssues = issues.filter(
-    (item) =>
-      item.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.studentEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.bookTitle?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '13.5px',
+    backgroundColor: '#ffffff',
+    boxSizing: 'border-box',
+    outline: 'none'
+  };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f1f5f9', padding: '28px', fontFamily: 'Inter, sans-serif' }}>
-      <div style={{ maxWidth: '1220px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        
-        {/* Top Header */}
-        <div style={{ backgroundColor: '#ffffff', padding: '20px 26px', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* 1. Pending Student Requests Section */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(15,23,42,0.04)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaHourglassHalf style={{ color: '#d97706' }} /> Student Book Requests ({pendingRequests.length})
+          </h3>
+          <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+            Approve requests to automatically issue books to students
+          </span>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                <th style={{ padding: '11px 13px' }}>Student Details</th>
+                <th style={{ padding: '11px 13px' }}>Requested Book</th>
+                <th style={{ padding: '11px 13px' }}>Request Date</th>
+                <th style={{ padding: '11px 13px', textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+                    Loading student requests...
+                  </td>
+                </tr>
+              ) : pendingRequests.length > 0 ? (
+                pendingRequests.map((req) => (
+                  <tr key={req._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px 13px' }}>
+                      <div style={{ fontWeight: '600', color: '#0f172a' }}>{req.studentName}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>
+                        {req.universityRoll ? `Roll: ${req.universityRoll} • ` : ''}
+                        {req.studentEmail}
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 13px', fontWeight: '600', color: '#1e293b' }}>{req.bookTitle}</td>
+                    <td style={{ padding: '12px 13px', color: '#334155' }}>{req.issueDate || '—'}</td>
+                    <td style={{ padding: '12px 13px', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleRequestAction(req._id, 'approve')}
+                          style={{
+                            backgroundColor: '#dcfce7',
+                            color: '#16a34a',
+                            border: '1px solid #bbf7d0',
+                            padding: '6px 12px',
+                            borderRadius: '7px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <FaCheckCircle size={11} /> Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRequestAction(req._id, 'reject')}
+                          style={{
+                            backgroundColor: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            padding: '6px 12px',
+                            borderRadius: '7px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <FaTimesCircle size={11} /> Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+                    No pending book requests from students.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 2. Direct Issue Book Form Card */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(15,23,42,0.04)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '21px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FaBookOpen style={{ color: '#2563eb' }} /> Issue Requests, Checkout & Returns Desk
+            <h2 style={{ margin: 0, fontSize: '19px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaBookMedical style={{ color: '#2563eb' }} /> Issue a Book Directly
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '13.5px', color: '#64748b' }}>
-              Approve student book requests, issue books directly, and manage active returns
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+              Search a student and assign an available book manually
             </p>
           </div>
           <button
-            onClick={() => navigate('/librarian/dashboard')}
-            style={{ backgroundColor: '#f1f5f9', color: '#334155', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            type="button"
+            onClick={loadData}
+            style={{ backgroundColor: '#f8fafc', color: '#334155', border: '1px solid #e2e8f0', padding: '8px 13px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            <FaArrowLeft /> Back to Dashboard
+            <FaSyncAlt size={11} /> Refresh
           </button>
         </div>
 
         {error && (
-          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '10px', fontSize: '13.5px', border: '1px solid #fecaca' }}>
+          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '11px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px' }}>
             {error}
           </div>
         )}
-        {success && (
-          <div style={{ backgroundColor: '#dcfce7', color: '#16a34a', padding: '12px 16px', borderRadius: '10px', fontSize: '13.5px', border: '1px solid #bbf7d0' }}>
-            {success}
+
+        {successMsg && (
+          <div style={{ backgroundColor: '#dcfce7', color: '#16a34a', padding: '11px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', fontWeight: '500' }}>
+            {successMsg}
           </div>
         )}
 
-        {/* Pending Student Book Issue Requests Section */}
-        <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '14px', border: pendingRequests.length > 0 ? '2px solid #93c5fd' : '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.06)' }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '17px', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaBell style={{ color: '#2563eb' }} /> Student Book Issue Requests ({pendingRequests.length} Pending)
-          </h3>
+        <form onSubmit={handleIssueSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', alignItems: 'end' }}>
+          {/* Searchable Select Student Box */}
+          <div ref={studentDropdownRef} style={{ position: 'relative' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <FaUserGraduate size={12} style={{ color: '#2563eb' }} /> Select Student *
+            </label>
 
-          {pendingRequests.length > 0 ? (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#eff6ff', color: '#1e40af' }}>
-                    <th style={{ padding: '12px 14px', borderBottom: '1px solid #dbeafe' }}>Student Details</th>
-                    <th style={{ padding: '12px 14px', borderBottom: '1px solid #dbeafe' }}>Requested Book</th>
-                    <th style={{ padding: '12px 14px', borderBottom: '1px solid #dbeafe' }}>Request Date</th>
-                    <th style={{ padding: '12px 14px', borderBottom: '1px solid #dbeafe' }}>Proposed Due Date</th>
-                    <th style={{ padding: '12px 14px', borderBottom: '1px solid #dbeafe' }}>Approval Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingRequests.map((reqItem) => (
-                    <tr key={reqItem._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 14px' }}>
-                        <strong style={{ display: 'block', color: '#0f172a' }}>{reqItem.studentName}</strong>
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>{reqItem.studentEmail}</span>
-                      </td>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#2563eb' }}>{reqItem.bookTitle}</td>
-                      <td style={{ padding: '12px 14px', color: '#64748b' }}>{reqItem.issueDate}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: '600', color: '#0f172a' }}>{reqItem.dueDate}</td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => handleApproveRequest(reqItem)}
-                            style={{ backgroundColor: '#16a34a', color: '#ffffff', border: 'none', padding: '7px 14px', borderRadius: '7px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-                          >
-                            <FaCheck /> Accept & Issue
-                          </button>
-                          <button
-                            onClick={() => handleRejectRequest(reqItem)}
-                            style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 12px', borderRadius: '7px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-                          >
-                            <FaTimes /> Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p style={{ margin: 0, fontSize: '13.5px', color: '#64748b' }}>
-              No pending book requests from students right now.
-            </p>
-          )}
-        </div>
-
-        {/* Direct Book Issue Form Card */}
-        <div style={{ backgroundColor: '#ffffff', padding: '26px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <h3 style={{ margin: '0 0 18px 0', fontSize: '17px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaPlusCircle style={{ color: '#2563eb' }} /> Direct Issue Book to Student
-          </h3>
-
-          <form onSubmit={handleIssueSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                <FaUserGraduate style={{ marginRight: '5px', color: '#2563eb' }} /> Select Registered Student
-              </label>
-              <select
-                value={selectedStudentId}
-                onChange={handleSelectStudent}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f8fafc' }}
-              >
-                <option value="">-- Choose Student --</option>
-                {students.map((st) => (
-                  <option key={st._id} value={st._id}>
-                    {st.name} ({st.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                Student Name *
-              </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <FaSearch style={{ position: 'absolute', left: '11px', color: '#94a3b8', fontSize: '12px', pointerEvents: 'none' }} />
               <input
                 type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                required
-                placeholder="Student full name"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                placeholder="Search name, roll, or email..."
+                value={studentSearch}
+                onFocus={() => setShowStudentDropdown(true)}
+                onChange={(e) => {
+                  setStudentSearch(e.target.value);
+                  setSelectedStudentId('');
+                  setShowStudentDropdown(true);
+                }}
+                style={{
+                  ...inputStyle,
+                  paddingLeft: '32px',
+                  paddingRight: '32px',
+                  borderColor: selectedStudentId ? '#16a34a' : '#cbd5e1'
+                }}
               />
+              {studentSearch ? (
+                <button
+                  type="button"
+                  onClick={handleClearStudent}
+                  title="Clear selection"
+                  style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                >
+                  <FaTimes size={12} />
+                </button>
+              ) : (
+                <FaChevronDown size={11} style={{ position: 'absolute', right: '11px', color: '#94a3b8', pointerEvents: 'none' }} />
+              )}
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                Student Email *
-              </label>
-              <input
-                type="email"
-                value={studentEmail}
-                onChange={(e) => setStudentEmail(e.target.value)}
-                required
-                placeholder="student@library.com"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                <FaBook style={{ marginRight: '5px', color: '#16a34a' }} /> Select Book *
-              </label>
-              <select
-                value={bookTitle}
-                onChange={(e) => setBookTitle(e.target.value)}
-                required
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', backgroundColor: '#f8fafc' }}
+            {/* Dropdown Search Results */}
+            {showStudentDropdown && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  boxShadow: '0 10px 25px rgba(15, 23, 42, 0.12)',
+                  maxHeight: '230px',
+                  overflowY: 'auto',
+                  zIndex: 50
+                }}
               >
-                <option value="">-- Select Available Book --</option>
-                {books.map((b) => (
-                  <option key={b._id} value={b.title} disabled={b.availableCopies <= 0}>
-                    {b.title} — ({b.availableCopies} available)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                Issue Date *
-              </label>
-              <input
-                type="date"
-                value={issueDate}
-                onChange={(e) => setIssueDate(e.target.value)}
-                required
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                Due Date *
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                required
-                min={issueDate}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none', padding: '11px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <FaPlusCircle /> {submitting ? 'Issuing Book...' : 'Confirm & Issue Book'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Active Issues & Returns Table */}
-        <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
-            <h3 style={{ margin: 0, fontSize: '17px', color: '#0f172a' }}>
-              Active Issued Books ({filteredIssues.length})
-            </h3>
-            <div style={{ position: 'relative', width: '280px' }}>
-              <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input
-                type="text"
-                placeholder="Search student or book..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px 9px 36px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13.5px', boxSizing: 'border-box' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Student</th>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Book Title</th>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Issue Date</th>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Due Date</th>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Fine</th>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Status</th>
-                  <th style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>Loading records...</td>
-                  </tr>
-                ) : filteredIssues.length > 0 ? (
-                  filteredIssues.map((item) => (
-                    <tr key={item._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 14px' }}>
-                        <strong style={{ display: 'block', color: '#0f172a' }}>{item.studentName}</strong>
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>{item.studentEmail}</span>
-                      </td>
-                      <td style={{ padding: '12px 14px', fontWeight: '600', color: '#334155' }}>{item.bookTitle}</td>
-                      <td style={{ padding: '12px 14px', color: '#64748b' }}>{item.issueDate}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: '600', color: '#0f172a' }}>{item.dueDate}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: item.fine > 0 ? '#dc2626' : '#16a34a' }}>
-                        ₹{item.fine || 0}
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: item.status === 'Overdue' ? '#fee2e2' : '#fff7ed',
-                            color: item.status === 'Overdue' ? '#dc2626' : '#ea580c'
-                          }}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => { setExtendingIssue(item); setNewDueDate(item.dueDate); }}
-                            style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <FaCalendarAlt /> Extend
-                          </button>
-                          <button
-                            onClick={() => handleReturnBook(item._id, item.bookTitle)}
-                            style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <FaCheckCircle /> Return
-                          </button>
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((st) => {
+                    const isSelected = st._id === selectedStudentId;
+                    return (
+                      <div
+                        key={st._id}
+                        onClick={() => handleSelectStudent(st)}
+                        style={{
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f1f5f9',
+                          backgroundColor: isSelected ? '#eff6ff' : '#ffffff'
+                        }}
+                      >
+                        <div style={{ fontSize: '13.5px', fontWeight: '600', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>{st.name}</span>
+                          {st.universityRoll && (
+                            <span style={{ fontSize: '11.5px', backgroundColor: '#eff6ff', color: '#2563eb', padding: '2px 7px', borderRadius: '5px', fontWeight: '600' }}>
+                              Roll: {st.universityRoll}
+                            </span>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  ))
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          {st.email} {st.stream ? `• ${st.stream}` : ''}
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>No active issued books found.</td>
-                  </tr>
+                  <div style={{ padding: '14px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
+                    No student found matching "{studentSearch}"
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+            )}
+          </div>
+
+          {/* Select Available Book */}
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <FaBook size={12} style={{ color: '#16a34a' }} /> Select Available Book *
+            </label>
+            <select
+              required
+              value={selectedBookId}
+              onChange={(e) => setSelectedBookId(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">-- Choose Book --</option>
+              {books
+                .filter((b) => (b.availableCopies ?? 0) > 0)
+                .map((bk) => (
+                  <option key={bk._id} value={bk._id}>
+                    {bk.title} ({bk.availableCopies} available)
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Issue Date */}
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <FaCalendarAlt size={12} style={{ color: '#2563eb' }} /> Issue Date
+            </label>
+            <input
+              type="date"
+              required
+              value={issueDate}
+              onChange={(e) => setIssueDate(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Return Due Date */}
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+              <FaCalendarAlt size={12} style={{ color: '#dc2626' }} /> Return Due Date
+            </label>
+            <input
+              type="date"
+              required
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '7px'
+              }}
+            >
+              <FaCheckCircle size={14} />
+              {submitting ? 'Issuing...' : 'Issue Book'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 3. Active Issued Books Table */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(15,23,42,0.04)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: '#0f172a' }}>
+            Active Issued Books ({filteredIssues.length})
+          </h3>
+
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <FaSearch style={{ position: 'absolute', left: '11px', color: '#94a3b8', fontSize: '12px' }} />
+            <input
+              type="text"
+              placeholder="Search student, roll, book..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ padding: '8px 12px 8px 32px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+            />
           </div>
         </div>
 
-        {/* Extend Modal */}
-        {extendingIssue && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', width: '360px', maxWidth: '90%' }}>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '17px' }}>Extend Due Date</h3>
-              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-                Book: <strong>{extendingIssue.bookTitle}</strong>
-              </p>
-              <form onSubmit={handleExtendSubmit}>
-                <input
-                  type="date"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                  required
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '16px', boxSizing: 'border-box' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button type="button" onClick={() => setExtendingIssue(null)} style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>
-                    Cancel
-                  </button>
-                  <button type="submit" style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer' }}>
-                    Save Date
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                <th style={{ padding: '11px 13px' }}>Student Details</th>
+                <th style={{ padding: '11px 13px' }}>Book Title</th>
+                <th style={{ padding: '11px 13px' }}>Issue Date</th>
+                <th style={{ padding: '11px 13px' }}>Due Date</th>
+                <th style={{ padding: '11px 13px' }}>Status</th>
+                <th style={{ padding: '11px 13px', textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" style={{ padding: '22px', textAlign: 'center', color: '#64748b' }}>
+                    Loading issued books...
+                  </td>
+                </tr>
+              ) : filteredIssues.length > 0 ? (
+                filteredIssues.map((item, idx) => (
+                  <tr key={item._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px 13px' }}>
+                      <div style={{ fontWeight: '600', color: '#0f172a' }}>{item.studentName}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>
+                        {item.universityRoll ? `Roll: ${item.universityRoll} • ` : ''}
+                        {item.studentEmail}
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 13px', fontWeight: '600', color: '#1e293b' }}>{item.bookTitle}</td>
+                    <td style={{ padding: '12px 13px', color: '#334155' }}>{item.issueDate}</td>
+                    <td style={{ padding: '12px 13px', color: '#334155', fontWeight: '600' }}>{item.dueDate}</td>
+                    <td style={{ padding: '12px 13px' }}>
+                      <span style={{ backgroundColor: item.status === 'Overdue' ? '#fee2e2' : '#dcfce7', color: item.status === 'Overdue' ? '#dc2626' : '#16a34a', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 13px', textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleReturnBook(item._id)}
+                        style={{
+                          backgroundColor: '#eff6ff',
+                          color: '#2563eb',
+                          border: '1px solid #bfdbfe',
+                          padding: '6px 12px',
+                          borderRadius: '7px',
+                          fontSize: '12.5px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <FaUndoAlt size={11} /> Return
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+                    No active issued books found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -22,14 +22,22 @@ router.post('/login', async (req, res) => {
 
     if (!user) {
       if (role === 'admin' && normalizedEmail === 'admin@library.com' && password === 'adminpassword123') {
-        const token = jwt.sign({ id: 'master-admin', email: normalizedEmail, role: 'admin' }, getJwtSecret(), { expiresIn: '1d' });
+        const token = jwt.sign(
+          { id: 'master-admin', email: normalizedEmail, role: 'admin' },
+          getJwtSecret(),
+          { expiresIn: '1d' }
+        );
         return res.status(200).json({
           token,
           user: { _id: 'master-admin', name: 'System Admin', email: normalizedEmail, role: 'admin' },
         });
       }
       if (role === 'librarian' && normalizedEmail === 'librarian@library.com' && password === 'librarianpassword123') {
-        const token = jwt.sign({ id: 'master-librarian', email: normalizedEmail, role: 'librarian' }, getJwtSecret(), { expiresIn: '1d' });
+        const token = jwt.sign(
+          { id: 'master-librarian', email: normalizedEmail, role: 'librarian' },
+          getJwtSecret(),
+          { expiresIn: '1d' }
+        );
         return res.status(200).json({
           token,
           user: { _id: 'master-librarian', name: 'Head Librarian', email: normalizedEmail, role: 'librarian' },
@@ -58,7 +66,15 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({
       token,
-      user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        universityRoll: user.universityRoll || '',
+        stream: user.stream || user.department || '',
+        semester: user.semester || '',
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Login server error', error: error.message });
@@ -68,10 +84,26 @@ router.post('/login', async (req, res) => {
 // POST /api/auth/register (also aliased to /signup)
 router.post(['/register', '/signup'], async (req, res) => {
   try {
-    const { name, email, password, department } = req.body || {};
+    const {
+      name,
+      email,
+      password,
+      universityRoll,
+      rollNumber,
+      stream,
+      department,
+      semester
+    } = req.body || {};
+
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required.' });
     }
+
+    const finalRoll = String(universityRoll || rollNumber || '').trim();
+    if (!finalRoll) {
+      return res.status(400).json({ message: 'University Roll Number is required.' });
+    }
+
     if (password.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters.' });
     }
@@ -87,22 +119,90 @@ router.post(['/register', '/signup'], async (req, res) => {
       return res.status(409).json({ message: 'This email is already registered!' });
     }
 
+    // Check duplicate University Roll Number
+    const existingRoll = await User.findOne({
+      role: 'student',
+      universityRoll: finalRoll
+    });
+    if (existingRoll) {
+      return res.status(409).json({
+        message: `University Roll Number "${finalRoll}" is already registered!`
+      });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    const resolvedStream = String(stream || department || '').trim();
 
     const newStudent = new User({
       name: String(name).trim(),
       email: normalizedEmail,
       password: hashedPassword,
-      department: department || 'Computer Science',
+      universityRoll: finalRoll,
+      stream: resolvedStream,
+      department: resolvedStream || 'General',
+      semester: String(semester || '').trim(),
       role: 'student',
       status: 'Active',
     });
 
     await newStudent.save();
-    res.status(201).json({ message: 'Registration successful! Redirecting to login...' });
+    res.status(201).json({
+      message: 'Registration successful! Redirecting to login...',
+      user: {
+        _id: newStudent._id,
+        name: newStudent.name,
+        email: newStudent.email,
+        universityRoll: newStudent.universityRoll,
+        stream: newStudent.stream,
+        semester: newStudent.semester,
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Registration failed', error: error.message });
+  }
+});
+
+// POST /api/auth/change-password (For logged-in Student, Librarian & Admin)
+router.post('/change-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters.' });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Unauthorized. Please log in again.' });
+    }
+
+    const decoded = jwt.verify(authHeader.split(' ')[1], getJwtSecret());
+
+    if (decoded.id === 'master-admin' || decoded.id === 'master-librarian') {
+      return res.status(403).json({ message: 'Default Master account password cannot be changed here.' });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found.' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Current password is incorrect!' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to change password', error: error.message });
   }
 });
 
@@ -123,7 +223,6 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(403).json({ message: 'Master Admin password cannot be reset here.' });
     }
 
-    // Issue a short-lived reset token so /reset-password cannot be abused arbitrarily
     const resetToken = jwt.sign(
       { email: user.email, purpose: 'password-reset' },
       getJwtSecret(),
@@ -151,7 +250,6 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'New password must be at least 6 characters.' });
     }
 
-    // Verify resetToken if supplied by frontend
     if (resetToken) {
       const payload = jwt.verify(resetToken, getJwtSecret());
       if (payload.purpose !== 'password-reset' || payload.email !== String(email).toLowerCase().trim()) {
