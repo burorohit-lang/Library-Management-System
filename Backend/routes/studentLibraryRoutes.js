@@ -29,7 +29,6 @@ router.get(['/student/dashboard', '/student-dashboard', '/dashboard'], async (re
     const config = await SystemConfig.findOne();
     const finePerDay = config?.finePerDay ?? 10;
 
-    // শিক্ষার্থীর ইমেইল (case-insensitive) অথবা studentId অনুযায়ী সব ট্রানজেকশন আনা
     const allTransactions = await Issue.find({
       $or: [
         { studentId: student._id },
@@ -106,89 +105,6 @@ router.get(['/student/dashboard', '/student-dashboard', '/dashboard'], async (re
     res.status(500).json({
       message: 'Failed to fetch student dashboard data.',
       error: error.message
-    });
-  }
-});
-
-// POST /api/library/student/request-book
-router.post(['/student/request-book', '/request-book'], async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Unauthorized. Please log in first.' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, getJwtSecret());
-    const student = await User.findById(decoded.id).select('-password');
-
-    if (!student) {
-      return res.status(404).json({ message: 'Student profile not found.' });
-    }
-
-    const { bookId, bookTitle } = req.body;
-    const book = bookId
-      ? await Book.findById(bookId)
-      : await Book.findOne({ title: bookTitle });
-
-    if (!book) {
-      return res.status(404).json({ message: 'Book not found in library catalog.' });
-    }
-
-    if ((book.availableCopies ?? 0) <= 0) {
-      return res.status(400).json({ message: 'This book is currently out of stock.' });
-    }
-
-    const existing = await Issue.findOne({
-      studentEmail: { $regex: new RegExp(`^${student.email}$`, 'i') },
-      bookTitle: book.title,
-      status: { $in: ['Pending', 'Active', 'Overdue'] }
-    });
-
-    if (existing) {
-      return res.status(400).json({
-        message:
-          existing.status === 'Pending'
-            ? 'You have already requested this book. Waiting for librarian approval.'
-            : 'You already have this book issued.'
-      });
-    }
-
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    const requestPayload = {
-      studentId: student._id,
-      studentName: student.name,
-      studentEmail: student.email,
-      universityRoll: student.universityRoll || '',
-      stream: student.stream || student.department || '',
-      semester: student.semester || '',
-      bookId: book._id,
-      bookTitle: book.title,
-      bookAuthor: book.author || '',
-      issueDate: todayStr,
-      dueDate: 'Pending Approval',
-      returnDate: '',
-      fine: 0,
-      status: 'Pending',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    try {
-      const newRequest = new Issue(requestPayload);
-      await newRequest.save();
-    } catch (validationErr) {
-      await Issue.collection.insertOne(requestPayload);
-    }
-
-    res.status(201).json({
-      message: `Book request sent for "${book.title}"! Waiting for Librarian approval.`
-    });
-  } catch (error) {
-    console.error('Student Book Request Error:', error);
-    res.status(500).json({
-      message: error.message || 'Failed to submit book request.'
     });
   }
 });

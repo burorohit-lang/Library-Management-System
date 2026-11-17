@@ -50,6 +50,9 @@ const LibraryCatalog = () => {
 
   useEffect(() => {
     fetchCatalog();
+    // প্রতি ১৫ সেকেন্ড পর পর লাইভ সিঙ্ক
+    const interval = setInterval(fetchCatalog, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRequestBook = async (book) => {
@@ -77,6 +80,7 @@ const LibraryCatalog = () => {
       }
 
       setSuccessMsg(data.message || `Issue request sent for "${book.title}"!`);
+      await fetchCatalog(); // লাইভ আপডেট সিঙ্ক
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setError(err.message || 'Failed to request book.');
@@ -91,6 +95,7 @@ const LibraryCatalog = () => {
     const q = searchQuery.toLowerCase();
     const shelf = (book.shelfLocation || book.location || '').toLowerCase();
     const matchesSearch =
+      !q ||
       book.title?.toLowerCase().includes(q) ||
       book.author?.toLowerCase().includes(q) ||
       book.category?.toLowerCase().includes(q) ||
@@ -148,10 +153,10 @@ const LibraryCatalog = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '19px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaBook style={{ color: '#16a34a' }} /> Library Book Catalog ({books.length})
+            <FaBook style={{ color: '#16a34a' }} /> Library Book Catalog ({filteredBooks.length})
           </h2>
           <p style={{ margin: '5px 0 0', fontSize: '13.5px', color: '#64748b' }}>
-            Search available books, check shelf locations, and request a book issue
+            Browse available books, check shelf locations, and request book issues
           </p>
         </div>
 
@@ -208,29 +213,28 @@ const LibraryCatalog = () => {
         </div>
       )}
 
-      {/* Table */}
+      {/* Catalog Table (Total Copies hidden, only Availability shown) */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-              <th style={{ padding: '12px 14px' }}>Book Details</th>
+              <th style={{ padding: '12px 14px' }}>Book Title & Author</th>
               <th style={{ padding: '12px 14px' }}>Category</th>
               <th style={{ padding: '12px 14px' }}>Shelf Location</th>
-              <th style={{ padding: '12px 14px' }}>Available</th>
-              <th style={{ padding: '12px 14px' }}>Status</th>
+              <th style={{ padding: '12px 14px' }}>Availability Status</th>
               <th style={{ padding: '12px 14px', textAlign: 'right' }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+                <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
                   Loading library books...
                 </td>
               </tr>
             ) : filteredBooks.length > 0 ? (
               filteredBooks.map((book, idx) => {
-                const avail = book.availableCopies ?? 0;
+                const isAvailable = (book.availableCopies ?? 0) > 0;
                 const shelf = book.shelfLocation || book.location;
                 return (
                   <tr key={book._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -248,9 +252,8 @@ const LibraryCatalog = () => {
                         {shelf || 'Not Assigned'}
                       </span>
                     </td>
-                    <td style={{ padding: '13px 14px', fontWeight: '700', color: '#0f172a' }}>{avail}</td>
                     <td style={{ padding: '13px 14px' }}>
-                      {avail > 0 ? (
+                      {isAvailable ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#dcfce7', color: '#16a34a', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
                           <FaCheckCircle size={11} /> Available
                         </span>
@@ -263,17 +266,17 @@ const LibraryCatalog = () => {
                     <td style={{ padding: '13px 14px', textAlign: 'right' }}>
                       <button
                         type="button"
-                        disabled={avail <= 0 || requestingId === book._id}
+                        disabled={!isAvailable || requestingId === book._id}
                         onClick={() => handleRequestBook(book)}
                         style={{
-                          backgroundColor: avail > 0 ? '#2563eb' : '#cbd5e1',
+                          backgroundColor: isAvailable ? '#2563eb' : '#cbd5e1',
                           color: '#ffffff',
                           border: 'none',
                           padding: '7px 13px',
                           borderRadius: '7px',
                           fontSize: '12.5px',
                           fontWeight: '600',
-                          cursor: avail > 0 ? 'pointer' : 'not-allowed',
+                          cursor: isAvailable ? 'pointer' : 'not-allowed',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '5px'
@@ -288,7 +291,7 @@ const LibraryCatalog = () => {
               })
             ) : (
               <tr>
-                <td colSpan="6" style={{ padding: '28px', textAlign: 'center', color: '#64748b' }}>
+                <td colSpan="5" style={{ padding: '28px', textAlign: 'center', color: '#64748b' }}>
                   No books found matching your search.
                 </td>
               </tr>

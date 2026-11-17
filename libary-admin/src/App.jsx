@@ -47,7 +47,6 @@ function App() {
         if (data?.maintenanceMode) {
           setMaintenanceMode(true);
         }
-
         if (localStorage.getItem('token') && data?.authenticated === false) {
           localStorage.clear();
         }
@@ -55,7 +54,6 @@ function App() {
         console.error('Session verification failed:', error);
       }
     };
-
     checkBackendSession();
   }, []);
 
@@ -93,21 +91,15 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<Overview />} />
             <Route path="dashboard/analytics" element={<Analytics />} />
-
-            {/* Manual Categories Routes */}
             <Route path="categories/books" element={<CategoryManagement />} />
-
             <Route path="books/add" element={<AddBook />} />
             <Route path="books/list" element={<BookList />} />
             <Route path="users/students" element={<StudentUsers />} />
             <Route path="users/librarians" element={<LibrarianUsers />} />
             <Route path="users/add" element={<AddUser />} />
-
-            {/* Issued Books & Student Borrowing Routes */}
             <Route path="issues/borrow" element={<ActiveIssues />} />
             <Route path="issues/active" element={<ActiveIssues />} />
             <Route path="issues/history" element={<IssueHistory />} />
-
             <Route path="settings/profile" element={<AdminProfile />} />
             <Route path="settings/system" element={<SystemConfig />} />
           </Route>
@@ -136,8 +128,6 @@ function App() {
             <Route path="catalog" element={<LibraryCatalog />} />
             <Route path="history" element={<StudentHistory />} />
           </Route>
-
-          {/* Redirect old student dashboard alias */}
           <Route path="/student-dashboard" element={<Navigate to="/student" replace />} />
         </Route>
 

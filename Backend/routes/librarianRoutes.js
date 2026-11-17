@@ -241,7 +241,7 @@ router.all('/handle-request/:id', async (req, res) => {
   }
 });
 
-// PUT / POST / PATCH /api/librarian/return-book/:id (এবং /return/:id অ্যালায়াসসহ)
+// PUT / POST / PATCH /api/librarian/return-book/:id
 router.all(['/return-book/:id', '/return/:id'], async (req, res) => {
   if (!['PUT', 'POST', 'PATCH'].includes(req.method)) {
     return res.status(405).json({ message: 'Method not allowed.' });
@@ -262,7 +262,6 @@ router.all(['/return-book/:id', '/return/:id'], async (req, res) => {
       return res.status(400).json({ message: 'This book has already been returned.' });
     }
 
-    // SystemConfig অনুযায়ী লেট ফাইন হিসাব করা (যদি Due Date পার হয়ে যায়)
     const config = await SystemConfig.findOne();
     const finePerDay = config?.finePerDay ?? 10;
 
@@ -279,7 +278,6 @@ router.all(['/return-book/:id', '/return/:id'], async (req, res) => {
       }
     }
 
-    // ১. ইস্যু রেকর্ডটি Returned হিসেবে আপডেট করা
     await Issue.collection.updateOne(
       { _id: new mongoose.Types.ObjectId(id) },
       {
@@ -292,7 +290,6 @@ router.all(['/return-book/:id', '/return/:id'], async (req, res) => {
       }
     );
 
-    // ২. মূল বইয়ের স্টক (availableCopies) ১ কপি বাড়ানো
     if (issueDoc.bookId && mongoose.Types.ObjectId.isValid(issueDoc.bookId)) {
       await Book.findByIdAndUpdate(issueDoc.bookId, { $inc: { availableCopies: 1 } });
     } else if (issueDoc.bookTitle) {
